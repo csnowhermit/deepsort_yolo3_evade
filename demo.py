@@ -63,11 +63,11 @@ def main(yolo):
     # print(colors[class_names.index("person")])
 
     writeVideo_flag = True
-    asyncVideo_flag = False
+    asyncVideo_flag = True
 
     file_path = 0
     if asyncVideo_flag :
-        from videocaptureasync import VideoCaptureAsync
+        from deep_sort.videocaptureasync import VideoCaptureAsync
         video_capture = VideoCaptureAsync(file_path)
     else:
         video_capture = cv2.VideoCapture(file_path)
