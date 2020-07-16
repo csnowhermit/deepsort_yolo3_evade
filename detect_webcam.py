@@ -39,7 +39,7 @@ def capture_thread(input_webcam, frame_buffer, lock):
         lock.acquire()
         frame_buffer.push(frame)
         lock.release()
-        cv2.waitKey(25)
+        cv2.waitKey(25)    # delay 25ms
 
 
 def detect_thread(frame_buffer, lock):

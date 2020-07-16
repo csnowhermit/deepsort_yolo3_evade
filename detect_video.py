@@ -3,9 +3,10 @@
 
 from __future__ import division, print_function, absolute_import
 
-from timeit import time
+import time
 import warnings
 import cv2
+import argparse
 import numpy as np
 from PIL import Image
 from yolo import YOLO
@@ -19,16 +20,13 @@ import imutils.video
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
 
-
 warnings.filterwarnings('ignore')
 
-def main(yolo):
-
+def main(yolo, input_path, output_path):
     # Definition of the parameters
     max_cosine_distance = 0.3
     nn_budget = None
     nms_max_overlap = 1.0
-    class_names = []
     
     # Deep SORT
     model_filename = 'model_data/mars-small128.pb'
@@ -56,44 +54,21 @@ def main(yolo):
                               size=np.floor(3e-2 * image_size[1] + 0.5).astype('int32'))    # 640*480
     thickness = (image_size[0] + image_size[1]) // 300
 
-    # print("font:", font)
-    # print("thickness:", thickness)
-    # print(class_names)
-    # print(colors)
-    # print(colors[class_names.index("person")])
+    video_capture = cv2.VideoCapture(input_path)
 
-    writeVideo_flag = True
-    asyncVideo_flag = True
-
-    file_path = 0
-    if asyncVideo_flag :
-        from deep_sort.videocaptureasync import VideoCaptureAsync
-        video_capture = VideoCaptureAsync(file_path)
-    else:
-        video_capture = cv2.VideoCapture(file_path)
-
-    if asyncVideo_flag:
-        video_capture.start()
-
-    if writeVideo_flag:
-        if asyncVideo_flag:
-            w = int(video_capture.cap.get(3))
-            h = int(video_capture.cap.get(4))
-        else:
-            w = int(video_capture.get(3))
-            h = int(video_capture.get(4))
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')
-        out = cv2.VideoWriter('output_yolov3.avi', fourcc, 30, (w, h))
-        frame_index = -1
-
-    fps = 0.0
-    fps_imutils = imutils.video.FPS().start()
+    video_FourCC = int(video_capture.get(cv2.CAP_PROP_FOURCC))
+    video_fps = video_capture.get(cv2.CAP_PROP_FPS)
+    video_size = (int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                  int(video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    isOutput = True if output_path != "" else False
+    if isOutput:
+        print("!!! TYPE:", type(output_path), type(video_FourCC), type(video_fps), type(video_size))
+        out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
 
     while True:
         ret, frame = video_capture.read()  # frame shape 640*480*3
         if ret != True:
              break
-
         t1 = time.time()
 
         # image = Image.fromarray(frame)
@@ -131,7 +106,7 @@ def main(yolo):
             bbox = track.to_tlbr()    # 左上右下
             # print("==循环中。。", bbox)
             label = '{} {:.2f} {} {}'.format("head", track.score, track.track_id, track.state)
-            print("++++++++++++++++++++++++++++++++++++label:", label)
+            # print("++++++++++++++++++++++++++++++++++++label:", label)
             label_size = draw.textsize(label, font)
 
             left, top, right, bottom = bbox
@@ -150,10 +125,10 @@ def main(yolo):
             for i in range(thickness):
                 draw.rectangle(
                     [left + i, top + i, right - i, bottom - i],
-                    outline=colors[class_names.index("person")])
+                    outline=colors[class_names.index("head")])
             draw.rectangle(
                 [tuple(text_origin), tuple(text_origin + label_size)],
-                fill=colors[class_names.index("person")])
+                fill=colors[class_names.index("head")])
             draw.text(text_origin, label, fill=(0, 0, 0), font=font)
         for (other_cls, other_box, other_score) in zip(other_classes, other_boxs, other_scores):    # 其他的识别，只标注类别和得分值
             label = '{} {:.2f}'.format(other_cls, other_score)
@@ -186,35 +161,29 @@ def main(yolo):
         frame = np.asarray(image)    # 这时转成np.ndarray后是rgb模式
         # bgr = rgb[..., ::-1]    # rgb转bgr
         frame = frame[..., ::-1]
-        cv2.imshow('', frame)
-        cv2.waitKey(1)
-
-        if writeVideo_flag: # and not asyncVideo_flag:
-            # save a frame
+        # cv2.imshow('', frame)
+        # cv2.waitKey(1)
+        print(time.time() - t1)
+        if isOutput:
             out.write(frame)
-            frame_index = frame_index + 1
-
-        fps_imutils.update()
-
-        fps = (fps + (1./(time.time()-t1))) / 2
-        print("FPS = %f"%(fps))
-
-        # # Press Q to stop!
-        # if cv2.waitKey(1) & 0xFF == ord('q'):
-        #     break
-
-    fps_imutils.stop()
-    print('imutils FPS: {}'.format(fps_imutils.fps()))
-
-    if asyncVideo_flag:
-        video_capture.stop()
-    else:
-        video_capture.release()
-
-    if writeVideo_flag:
-        out.release()
-
-    cv2.destroyAllWindows()
+    yolo.close_session()
 
 if __name__ == '__main__':
-    main(YOLO())
+    parser = argparse.ArgumentParser(argument_default=argparse.SUPPRESS)
+    parser.add_argument(
+        "--input", nargs='?', type=str, required=True,
+        help="Video input path"
+    )
+    parser.add_argument(
+        "--output", nargs='?', type=str, default="",
+        help="[Optional] Video output path"
+    )
+
+    FLAGS = parser.parse_args()
+
+    if "input" in FLAGS:
+        main(YOLO(), FLAGS.input, FLAGS.output)
+    else:
+        print("Must specify at least video_input_path.  See usage with --help.")
+
+
