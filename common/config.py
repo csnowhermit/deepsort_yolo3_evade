@@ -1,6 +1,5 @@
 import os
 import pymysql
-from common.entity import CapLocation
 
 '''
     本实例的配置项
@@ -24,3 +23,19 @@ cursor = conn.cursor()
 
 # 需特殊处理的类别
 special_types = ['head', 'person']
+tracker_type = 'head'    # 需要tracker的类别
+
+# 保存路径
+normal_save_path = "D:/monitor_images/" + ip + "/normal_images/"
+evade_save_path = "D:/monitor_images/" + ip + "/evade_images/"
+
+if os.path.exists(normal_save_path) is False:
+    os.makedirs(normal_save_path)
+if os.path.exists(evade_save_path) is False:
+    os.makedirs(evade_save_path)
+
+# 通过状态的判断条件：图像的高*比例，在两比例之间，认定为涉嫌逃票
+up_distance_rate = 0.6
+down_distance_rate = 0.18
+
+

@@ -17,7 +17,8 @@ from tools import generate_detections as gdet
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
 from common.Stack import Stack
-from common.config import rtsp_url
+from common.config import rtsp_url, tracker_type
+from common.evadeUtil import evade_vote
 import threading
 
 warnings.filterwarnings('ignore')
@@ -78,11 +79,13 @@ def detect_thread(frame_buffer, lock):
 
     while True:
         if frame_buffer.size() > 0:
+            read_t1 = time.time()    # 读取动作开始
             lock.acquire()
             frame = frame_buffer.pop()    # 每次拿最新的
             lock.release()
 
-            t1 = time.time()
+            read_time = time.time() - read_t1    # 读取动作结束
+            detect_t1 = time.time()    # 检测动作开始
 
             # image = Image.fromarray(frame)
             image = Image.fromarray(frame[..., ::-1])  # bgr to rgb
@@ -113,12 +116,17 @@ def detect_thread(frame_buffer, lock):
             tracker.predict()
             tracker.update(detections)
 
+            # 判定通行状态：0正常通过，1涉嫌逃票
+            flag, TrackContentList = evade_vote(tracker.tracks, other_classes, other_boxs, other_scores, frame.shape[0])
+
+            detect_time = time.time() - detect_t1    # 检测动作结束
+
             # 标注
             draw = ImageDraw.Draw(image)
 
             for track in tracker.tracks:  # 标注人，track.state=0/1，都在tracker.tracks中
                 bbox = track.to_tlbr()  # 左上右下
-                # print("==循环中。。", bbox)
+                print("==循环中。。", type(bbox), bbox)
                 label = '{} {:.2f} {} {}'.format("head", track.score, track.track_id, track.state)
                 # print("++++++++++++++++++++++++++++++++++++label:", label)
                 label_size = draw.textsize(label, font)
@@ -130,6 +138,10 @@ def detect_thread(frame_buffer, lock):
                 right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
                 print(label, (left, top), (right, bottom))
 
+
+                ######################## 此处写入库逻辑 ####################
+
+
                 if top - label_size[1] >= 0:
                     text_origin = np.array([left, top - label_size[1]])
                 else:
@@ -139,10 +151,10 @@ def detect_thread(frame_buffer, lock):
                 for i in range(thickness):
                     draw.rectangle(
                         [left + i, top + i, right - i, bottom - i],
-                        outline=colors[class_names.index("person")])
+                        outline=colors[class_names.index(tracker_type)])
                 draw.rectangle(
                     [tuple(text_origin), tuple(text_origin + label_size)],
-                    fill=colors[class_names.index("person")])
+                    fill=colors[class_names.index(tracker_type)])
                 draw.text(text_origin, label, fill=(0, 0, 0), font=font)
             for (other_cls, other_box, other_score) in zip(other_classes, other_boxs, other_scores):  # 其他的识别，只标注类别和得分值
                 label = '{} {:.2f}'.format(other_cls, other_score)
@@ -177,14 +189,15 @@ def detect_thread(frame_buffer, lock):
             frame = frame[..., ::-1]
             cv2.imshow('', frame)
             cv2.waitKey(1)
-            print(time.time() - t1)
+
+            print(time.time() - read_t1)
     cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
     frame_buffer = Stack(30 * 5)
     lock = threading.RLock()
-    t1 = threading.Thread(target=capture_thread, args=(rtsp_url, frame_buffer, lock))
+    t1 = threading.Thread(target=capture_thread, args=(0, frame_buffer, lock))
     t1.start()
     t2 = threading.Thread(target=detect_thread, args=(frame_buffer, lock))
     t2.start()

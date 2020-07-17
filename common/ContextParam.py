@@ -1,6 +1,7 @@
 import os
-from common.config import cursor
+from common.config import cursor, ip
 from common.entity import CapLocation
+
 
 '''
     获取上下文参数
@@ -15,8 +16,8 @@ def getContextParam():
             select gate_num, direction, default_direct, entrance,
                    entrance_direct, entrance_gate_num, displacement,
                    passway_area, gate_area, gate_light_area 
-            from cap_location where is_enabled='y'
-    '''
+            from cap_location where is_enabled='y' and ip='%s'
+    ''' %  (ip)
     cursor.execute(sql)
 
     results = cursor.fetchall()
@@ -30,4 +31,5 @@ def getContextParam():
                                            row[5], row[6], row[7], row[8], row[9]))
     return capLocationList
 
-
+if __name__ == '__main__':
+    getContextParam()
