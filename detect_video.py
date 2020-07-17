@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, absolute_import
 
+import os
 import time
 import warnings
 import cv2
@@ -19,8 +20,9 @@ from tools import generate_detections as gdet
 import imutils.video
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
-from common.config import tracker_type
+from common.config import tracker_type, normal_save_path, evade_save_path, ip
 from common.evadeUtil import evade_vote
+from common.dateUtil import formatTimestamp
 
 warnings.filterwarnings('ignore')
 
@@ -176,9 +178,12 @@ def main(yolo, input_path, output_path):
         print(time.time() - read_t1)
 
         ################ 批量入库 ################
-        # 当前时间：read_t1
-        savefile = ""
-
+        curr_time = formatTimestamp(int(read_t1))    # 当前时间按读取时间算
+        if flag == "NORMAL":
+            savefile = os.path.join(normal_save_path, ip + "_" + formatTimestamp(int(read_t1)) + ".jpg")
+        else:
+            savefile = os.path.join(evade_save_path, ip + "_" + formatTimestamp(int(read_t1)) + ".jpg")
+        cv2.imwrite(savefile, frame)    # 保存到文件
 
 
         if isOutput:    # 识别后的视频保存

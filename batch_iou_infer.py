@@ -71,7 +71,7 @@ for i in range(len(center)):
         if distance > 1.0:    # 如果距离满足条件
             suspicion1 = unconfirm_evade[center.index(center[i])]    # 嫌疑人1
             suspicion2 = unconfirm_evade[center.index(center[j])]    # 嫌疑人2
-            print(suspicion1, suspicion2, "涉嫌逃票")
+            print(suspicion1, suspicion2, "涉嫌逃票")    # [0, 0, 1, 2] [1, 1, 2, 2] 涉嫌逃票
             index1 = box1.index(suspicion1)
             index2 = box1.index(suspicion2)
-            print("这两人真实序号：", index1, index2)
+            print("这两人真实序号：", index1, index2)    # 这两人真实序号： 0 2

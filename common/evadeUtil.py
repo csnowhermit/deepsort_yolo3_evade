@@ -65,7 +65,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
         # 3.计算两两之间的距离，通过距离判断是否属于逃票
         center = [[left + (right - left) / 2,
                    top + (bottom - top) / 2] for (left, top, right, bottom) in suspicion_evade]
-        evade_index_list = []    # 涉嫌逃票的序号：
+        evade_index_list = []    # 涉嫌逃票的序号：在原始bboxes中的序号
         for i in range(len(center)):
             for j in range(i + 1, len(center)):
                 person1x, person1y = center[i][0], center[i][1]
@@ -85,7 +85,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                     evade_index_list.append(index1)
                     evade_index_list.append(index2)
 
-                    flag = "WARNING"
+                    flag = "WARNING"    # 检出有人逃票，该标识为WARNING
         # 更新每个人的通行状态
         for i in range(len(bboxes)):
             if i in evade_index_list:
