@@ -22,7 +22,7 @@ imgpointsR = []  # 2d points in image plane
 imgpointsL = []
 
 # 本次实验采集里共计30组待标定图片依次读入进行以下操作
-for i in range(0, 30):
+for i in range(0, 108):
     t = str(i)
     ChessImaR = cv2.imread('./snapshot/right_' + t + '.jpg', 0)  # 右视图
     ChessImaL = cv2.imread('./snapshot/left_' + t + '.jpg', 0)  # 左视图
@@ -30,8 +30,8 @@ for i in range(0, 30):
     retL, cornersL = cv2.findChessboardCorners(ChessImaL, (7, 5), None)  # 提取左图每一张图片的角点
     if (True == retR) & (True == retL):
         objpoints.append(objp)
-        cv2.cornerSubPix(ChessImaR, cornersR, (5, 7), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化，原先11*11
-        cv2.cornerSubPix(ChessImaL, cornersL, (5, 7), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化
+        cv2.cornerSubPix(ChessImaR, cornersR, (11, 11), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化，原先11*11
+        cv2.cornerSubPix(ChessImaL, cornersL, (11, 11), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化
         imgpointsR.append(cornersR)
         imgpointsL.append(cornersL)
 
