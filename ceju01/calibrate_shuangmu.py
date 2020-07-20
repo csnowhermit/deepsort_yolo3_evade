@@ -22,20 +22,32 @@ imgpointsR = []  # 2d points in image plane
 imgpointsL = []
 
 # 本次实验采集里共计30组待标定图片依次读入进行以下操作
-for i in range(0, 22):
+for i in range(0, 30):
     t = str(i)
     ChessImaR = cv2.imread('./snapshot/right_' + t + '.jpg', 0)  # 右视图
     ChessImaL = cv2.imread('./snapshot/left_' + t + '.jpg', 0)  # 左视图
     retR, cornersR = cv2.findChessboardCorners(ChessImaR, (7, 5), None)  # 提取右图每一张图片的角点
-    retL, cornersL = cv2.findChessboardCorners(ChessImaL, (7, 5), None)  # # 提取左图每一张图片的角点
+    retL, cornersL = cv2.findChessboardCorners(ChessImaL, (7, 5), None)  # 提取左图每一张图片的角点
     if (True == retR) & (True == retL):
         objpoints.append(objp)
-        cv2.cornerSubPix(ChessImaR, cornersR, (11, 11), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化
-        cv2.cornerSubPix(ChessImaL, cornersL, (11, 11), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化
+        cv2.cornerSubPix(ChessImaR, cornersR, (5, 7), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化，原先11*11
+        cv2.cornerSubPix(ChessImaL, cornersL, (5, 7), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化
         imgpointsR.append(cornersR)
         imgpointsL.append(cornersL)
 
+print("len(objpoints):", len(objpoints))
+
 # 相机的单双目标定、及校正
+#   左侧相机单独标定：mtxL内参矩阵，distL畸变系数
+retL, mtxL, distL, rvecsL, tvecsL = cv2.calibrateCamera(objpoints, imgpointsL, ChessImaL.shape[::-1], None, None)
+print("左侧相机单独标定：", retL, mtxL, distL)    # 输出内参矩阵，畸变系数
+
+#   获取新的相机矩阵后续传递给initUndistortRectifyMap，以用remap生成映射关系
+hL, wL = ChessImaL.shape[:2]
+OmtxL, roiL = cv2.getOptimalNewCameraMatrix(mtxL, distL, (wL, hL), 1, (wL, hL))
+print("hL, wL:", hL, wL)
+print("OmtxL, roiL:", OmtxL, roiL)
+
 #   右侧相机单独标定：mtxR内参矩阵，distR畸变系数
 retR, mtxR, distR, rvecsR, tvecsR = cv2.calibrateCamera(objpoints, imgpointsR, ChessImaR.shape[::-1], None, None)
 print("右侧相机单独标定：", retR, mtxR, distR)    # 输出内参矩阵，畸变系数
@@ -44,15 +56,6 @@ print("右侧相机单独标定：", retR, mtxR, distR)    # 输出内参矩阵�
 hR, wR = ChessImaR.shape[:2]
 OmtxR, roiR = cv2.getOptimalNewCameraMatrix(mtxR, distR, (wR, hR), 1, (wR, hR))
 print("OmtxR, roiR:", OmtxR, roiR)
-
-#   左侧相机单独标定：mtxL内参矩阵，distL畸变系数
-retL, mtxL, distL, rvecsL, tvecsL = cv2.calibrateCamera(objpoints, imgpointsL, ChessImaL.shape[::-1], None, None)
-print("左侧相机单独标定：", retL, mtxL, distL)    # 输出内参矩阵，畸变系数
-
-#   获取新的相机矩阵后续传递给initUndistortRectifyMap，以用remap生成映射关系
-hL, wL = ChessImaL.shape[:2]
-OmtxL, roiL = cv2.getOptimalNewCameraMatrix(mtxL, distL, (wL, hL), 1, (wL, hL))
-print("OmtxL, roiL:", OmtxL, roiL)
 
 # 双目相机的标定
 # 设置标志位为cv2.CALIB_FIX_INTRINSIC，这样就会固定输入的cameraMatrix和distCoeffs不变，只求解𝑅,𝑇,𝐸,𝐹
@@ -77,38 +80,38 @@ rectify_scale = 1  # 设置为0的话，对图片进行剪裁，设置为1则保
 RL, RR, PL, PR, Q, roiL, roiR = cv2.stereoRectify(MLS, dLS, MRS, dRS,
                                                   ChessImaR.shape[::-1], R, T,
                                                   rectify_scale, (0, 0))
-# # 利用initUndistortRectifyMap函数计算畸变矫正和立体校正的映射变换，实现极线对齐。
-# Left_Stereo_Map = cv2.initUndistortRectifyMap(MLS, dLS, RL, PL,
-#                                               ChessImaR.shape[::-1], cv2.CV_16SC2)
-#
-# Right_Stereo_Map = cv2.initUndistortRectifyMap(MRS, dRS, RR, PR,
-#                                                ChessImaR.shape[::-1], cv2.CV_16SC2)
-#
-# # 立体校正效果显示
-# for i in range(0, 1):  # 以第一对图片为例
-#     t = str(i)
-#     frameR = cv2.imread('./snapshot/right_' + t + '.jpg', 0)
-#     frameL = cv2.imread('./snapshot/left_' + t + '.jpg', 0)
-#
-#     Left_rectified = cv2.remap(frameL, Left_Stereo_Map[0], Left_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT,
-#                                0)  # 使用remap函数完成映射
-#     im_L = Image.fromarray(Left_rectified)  # numpy 转 image类
-#
-#     Right_rectified = cv2.remap(frameR, Right_Stereo_Map[0], Right_Stereo_Map[1], cv2.INTER_LANCZOS4,
-#                                 cv2.BORDER_CONSTANT, 0)
-#     im_R = Image.fromarray(Right_rectified)  # numpy 转 image 类
-#
-#     # 创建一个能同时并排放下两张图片的区域，后把两张图片依次粘贴进去
-#     width = im_L.size[0] * 2
-#     height = im_L.size[1]
-#
-#     img_compare = Image.new('RGBA', (width, height))
-#     img_compare.paste(im_L, box=(0, 0))
-#     img_compare.paste(im_R, box=(640, 0))
-#
-#     # 在已经极线对齐的图片上均匀画线
-#     for i in range(1, 20):
-#         len = 480 / 20
-#         plt.axhline(y=i * len, color='r', linestyle='-')
-#     plt.imshow(img_compare)
-#     plt.show()
+# 利用initUndistortRectifyMap函数计算畸变矫正和立体校正的映射变换，实现极线对齐。
+Left_Stereo_Map = cv2.initUndistortRectifyMap(MLS, dLS, RL, PL,
+                                              ChessImaR.shape[::-1], cv2.CV_16SC2)
+
+Right_Stereo_Map = cv2.initUndistortRectifyMap(MRS, dRS, RR, PR,
+                                               ChessImaR.shape[::-1], cv2.CV_16SC2)
+
+# 立体校正效果显示
+for i in range(0, 1):  # 以第一对图片为例
+    t = str(i)
+    frameR = cv2.imread('./snapshot/right_' + t + '.jpg', 0)
+    frameL = cv2.imread('./snapshot/left_' + t + '.jpg', 0)
+
+    Left_rectified = cv2.remap(frameL, Left_Stereo_Map[0], Left_Stereo_Map[1], cv2.INTER_LANCZOS4, cv2.BORDER_CONSTANT,
+                               0)  # 使用remap函数完成映射
+    im_L = Image.fromarray(Left_rectified)  # numpy 转 image类
+
+    Right_rectified = cv2.remap(frameR, Right_Stereo_Map[0], Right_Stereo_Map[1], cv2.INTER_LANCZOS4,
+                                cv2.BORDER_CONSTANT, 0)
+    im_R = Image.fromarray(Right_rectified)  # numpy 转 image 类
+
+    # 创建一个能同时并排放下两张图片的区域，后把两张图片依次粘贴进去
+    width = im_L.size[0] * 2
+    height = im_L.size[1]
+
+    img_compare = Image.new('RGBA', (width, height))
+    img_compare.paste(im_L, box=(0, 0))
+    img_compare.paste(im_R, box=(640, 0))
+
+    # 在已经极线对齐的图片上均匀画线
+    for i in range(1, 20):
+        len = 480 / 20
+        plt.axhline(y=i * len, color='r', linestyle='-')
+    plt.imshow(img_compare)
+    plt.show()

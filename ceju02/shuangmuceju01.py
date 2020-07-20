@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
 import time
-import ceju01.stereoconfig as stereoconfig
-import pcl
-import pcl.pcl_visualization
+import ceju02.stereoconfig as config
+# import pcl
+# import pcl.pcl_visualization
 
 
 # 预处理
@@ -165,29 +165,29 @@ def DepthColor2Cloud(points_3d, colors):
     return pointcloud_1
 
 
-# 点云显示
-def view_cloud(pointcloud):
-    cloud = pcl.PointCloud_PointXYZRGBA()
-    cloud.from_array(pointcloud)
-
-    try:
-        visual = pcl.pcl_visualization.CloudViewing()
-        visual.ShowColorACloud(cloud)
-        v = True
-        while v:
-            v = not (visual.WasStopped())
-    except:
-        pass
+# # 点云显示
+# def view_cloud(pointcloud):
+#     cloud = pcl.PointCloud_PointXYZRGBA()
+#     cloud.from_array(pointcloud)
+#
+#     try:
+#         visual = pcl.pcl_visualization.CloudViewing()
+#         visual.ShowColorACloud(cloud)
+#         v = True
+#         while v:
+#             v = not (visual.WasStopped())
+#     except:
+#         pass
 
 
 if __name__ == '__main__':
     # 读取MiddleBurry数据集的图片
-    iml = cv2.imread('/data/数据/MiddleBurry/Adirondack-perfect/im0.png')  # 左图
-    imr = cv2.imread('/data/数据/MiddleBurry/Adirondack-perfect/im1.png')  # 右图
+    iml = cv2.imread('../ceju01/snapshot/left_0.jpg')  # 左图
+    imr = cv2.imread('../ceju01/snapshot/right_0.jpg')  # 右图
     height, width = iml.shape[0:2]
 
     # 读取相机内参和外参
-    config = stereoconfig.stereoCamera()
+    config = config.stereoCamera()
 
     # 立体校正
     map1x, map1y, map2x, map2y, Q = getRectifyTransform(height, width, config)  # 获取用于畸变校正和立体校正的映射矩阵以及用于计算像素空间坐标的重投影矩阵
@@ -195,13 +195,13 @@ if __name__ == '__main__':
 
     # 绘制等间距平行线，检查立体校正的效果
     line = draw_line(iml_rectified, imr_rectified)
-    cv2.imwrite('/data/检验.png', line)
+    cv2.imwrite('jianyan.png', line)
 
     # 立体匹配
     iml_, imr_ = preprocess(iml, imr)  # 预处理，不做也可以
     disp, _ = disparity_SGBM(iml_, imr_)  # 这里传入的是未经立体校正的图像，因为我们使用的middleburry图片已经是校正过的了
     disp = np.divide(disp.astype(np.float32), 16.)  # 除以16得到真实视差（因为SGBM算法得到的视差是×16的）
-    cv2.imwrite('/data/视差.png', disp)
+    cv2.imwrite('shicha.png', disp)
 
     # 计算像素点的3D坐标（左相机坐标系下）
     points_3d = cv2.reprojectImageTo3D(disp, Q)  # 可以使用上文的stereo_config.py给出的参数
@@ -209,5 +209,5 @@ if __name__ == '__main__':
     # 构建点云--Point_XYZRGBA格式
     pointcloud = DepthColor2Cloud(points_3d, iml)
 
-    # 显示点云
-    view_cloud(pointcloud)
+    # # 显示点云
+    # view_cloud(pointcloud)

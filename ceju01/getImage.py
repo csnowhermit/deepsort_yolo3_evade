@@ -18,7 +18,7 @@ right_camera = cv2.VideoCapture(2)
 
 counter = 0
 utc = time.time()
-pattern = (8, 6) # 棋盘格尺寸（用棋盘格做标定）
+pattern = (7, 5) # 棋盘格尺寸（用棋盘格做标定）
 folder = "./snapshot/" # 拍照文件目录
 
 def shot(pos, frame):
@@ -26,7 +26,7 @@ def shot(pos, frame):
     path = folder + pos + "_" + str(counter) + ".jpg"
 
     cv2.imwrite(path, frame)
-    print("snapshot saved into: " + path)
+    print("snapshot saved into: %s %s" % (path, frame.shape))
 
 while True:
     ret1, left_frame = left_camera.read()

@@ -10,16 +10,16 @@ cv2.namedWindow("left")
 cv2.namedWindow("right")
 cv2.namedWindow("depth")
 cv2.moveWindow("left", 0, 0)
-cv2.moveWindow("right", 600, 0)
+cv2.moveWindow("right", 400, 0)
 cv2.createTrackbar("num", "depth", 0, 10, lambda x: None)
 cv2.createTrackbar("blockSize", "depth", 5, 255, lambda x: None)
 
-camera1 = cv2.VideoCapture(1, cv2.CAP_DSHOW)
-camera1.set(3, 320)
-camera1.set(4, 240)
-camera2 = cv2.VideoCapture(2, cv2.CAP_DSHOW)
-camera2.set(3, 320)
-camera2.set(4, 240)
+camera1 = cv2.VideoCapture(1)
+# camera1.set(3, 320)
+# camera1.set(4, 240)
+camera2 = cv2.VideoCapture(2)
+# camera2.set(3, 320)
+# camera2.set(4, 240)
 
 
 
@@ -62,6 +62,7 @@ while True:
     disp = cv2.normalize(disparity, disparity, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
     # 将图片扩展至3d空间中，其z方向的值则为当前的距离
     threeD = cv2.reprojectImageTo3D(disparity.astype(np.float32)/16., camera_configs.Q)
+    # print("threeD:", threeD.shape, threeD)
 
     cv2.imshow("left", img1_rectified)
     cv2.imshow("right", img2_rectified)

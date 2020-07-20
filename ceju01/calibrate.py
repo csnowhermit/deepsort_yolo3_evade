@@ -8,7 +8,7 @@ import numpy as np
 '''
 
 # 0.基本配置
-show_corners = False    # 展示角点
+show_corners = True    # 展示角点
 
 image_number = 13
 board_size = (7, 5)  # 8*6的棋盘
