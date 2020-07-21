@@ -22,7 +22,9 @@ imgpointsR = []  # 2d points in image plane
 imgpointsL = []
 
 # 本次实验采集里共计30组待标定图片依次读入进行以下操作
-for i in range(0, 108):
+image_nums = 32
+
+for i in range(0, image_nums):
     t = str(i)
     ChessImaR = cv2.imread('./snapshot/right_' + t + '.jpg', 0)  # 右视图
     ChessImaL = cv2.imread('./snapshot/left_' + t + '.jpg', 0)  # 左视图
@@ -30,8 +32,9 @@ for i in range(0, 108):
     retL, cornersL = cv2.findChessboardCorners(ChessImaL, (7, 5), None)  # 提取左图每一张图片的角点
     if (True == retR) & (True == retL):
         objpoints.append(objp)
-        cv2.cornerSubPix(ChessImaR, cornersR, (11, 11), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化，原先11*11
-        cv2.cornerSubPix(ChessImaL, cornersL, (11, 11), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化
+        # winSize=(5, 5)，表示一个大小为(2*5+1, 2*5+1)的搜索框将被使用
+        cv2.cornerSubPix(ChessImaR, cornersR, (5, 5), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化，原先11*11
+        cv2.cornerSubPix(ChessImaL, cornersL, (5, 5), (-1, -1), criteria)  # 亚像素精确化，对粗提取的角点进行精确化
         imgpointsR.append(cornersR)
         imgpointsL.append(cornersL)
 
@@ -88,7 +91,7 @@ Right_Stereo_Map = cv2.initUndistortRectifyMap(MRS, dRS, RR, PR,
                                                ChessImaR.shape[::-1], cv2.CV_16SC2)
 
 # 立体校正效果显示
-for i in range(0, 1):  # 以第一对图片为例
+for i in range(0, image_nums):  # 以第一对图片为例
     t = str(i)
     frameR = cv2.imread('./snapshot/right_' + t + '.jpg', 0)
     frameL = cv2.imread('./snapshot/left_' + t + '.jpg', 0)

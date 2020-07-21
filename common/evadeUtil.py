@@ -16,7 +16,19 @@ passway_area_list = [[capLocation.passway_area.left,
                       capLocation.passway_area.top,
                       capLocation.passway_area.right,
                       capLocation.passway_area.bottom] for capLocation in capLocationList]
+passway_default_direct_list = [capLocation.default_direct for capLocation in capLocationList]    # 闸机的方向：0出站，1进站
+print("passway_default_direct_list:", passway_default_direct_list)    # 实时计算拿默认方向，批处理用人相对位置结合cap_location.displacement字段微调
 
+
+'''
+    拿到指定通道的默认方向
+    :param gate_num int类型，闸机编号
+    :return 返回该通道的默认方向：0出站，1进站
+'''
+def getDefaultDirection(gate_num):
+    for capLocation in capLocationList:
+        if capLocation.gate_num == str(gate_num):
+            return capLocation.default_direct
 
 '''
     逃票判定
@@ -25,7 +37,7 @@ passway_area_list = [[capLocation.passway_area.left,
     :param other_boxs 其他类别框，上左下右
     :param other_scores 其他类别的得分值
     :param height 图像的高
-    :return flag, TrackContentList 通行状态的标识，新的追踪人的内容
+    :return flag, TrackContentList 通行状态，新的追踪人的内容
 '''
 def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
     TrackContentList = []    # 追踪人的内容，新增闸机编号和通过状态
@@ -99,10 +111,17 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                                     score=track.score,
                                     track_id=track.track_id,
                                     state=track.state,
-                                    bbox=track.to_tlbr())
+                                    bbox=Box2Line(track.to_tlbr()),
+                                    direction=passway_default_direct_list[which_gate])    # 实时视图用默认方向，后续离线全局视图微调
         TrackContentList.append(trackContent)
     return flag, TrackContentList
 
+'''
+    Box转Line：左_上_右_下
+'''
+def Box2Line(bbox):
+    if len(bbox) ==4:
+        return "%s_%s_%s_%s" % (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))
 
 '''
     判断人在哪个闸机区域，人以中心点为准
@@ -111,6 +130,8 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
     :return which_gates 通道编号列表
 '''
 def isin_which_gate(bboxes):
+    print("bboxes:", bboxes)
+    print("passway_area_list:", passway_area_list)
     iou_result = calc_iou(bbox1=bboxes, bbox2=passway_area_list)
     which_gates = []
     for iou in iou_result:

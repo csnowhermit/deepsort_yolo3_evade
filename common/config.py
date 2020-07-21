@@ -1,5 +1,6 @@
 import os
 import pymysql
+from common.Logger import Logger as Logger
 
 '''
     本实例的配置项
@@ -12,6 +13,9 @@ zkurl = "127.0.0.1:2181"
 ip = "10.6.8.181"
 rtsp_url = "rtsp://admin:quickhigh123456@192.168.120.155/h264/ch1/sub/av_stream"    # 用子码流读取
 
+# 图像大小
+image_size = "1920x1080"
+
 # 数据库
 conn = pymysql.connect(host='127.0.0.1',
                        port=3306,
@@ -20,6 +24,8 @@ conn = pymysql.connect(host='127.0.0.1',
                        database='evade',
                        charset='utf8mb4')
 cursor = conn.cursor()
+
+table_name = "details_%s" % (ip.replace(".", "_"))    # 表名
 
 # 需特殊处理的类别
 special_types = ['head', 'person']
@@ -38,4 +44,8 @@ if os.path.exists(evade_save_path) is False:
 up_distance_rate = 0.6
 down_distance_rate = 0.18
 
+
+# 日志文件
+logfile = 'D:/evade_logs/evade_%s.log' % ip
+log = Logger(logfile, level='info')
 

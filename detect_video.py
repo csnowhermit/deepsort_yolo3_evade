@@ -23,6 +23,7 @@ import colorsys
 from common.config import tracker_type, normal_save_path, evade_save_path, ip
 from common.evadeUtil import evade_vote
 from common.dateUtil import formatTimestamp
+from common.dbUtil import saveManyDetails2DB
 
 warnings.filterwarnings('ignore')
 
@@ -116,7 +117,7 @@ def main(yolo, input_path, output_path):
 
         for track in tracker.tracks:    # 标注人，track.state=0/1，都在tracker.tracks中
             bbox = track.to_tlbr()    # 左上右下
-            print("==循环中。。", bbox)
+            # print("==循环中。。", bbox)
             label = '{} {:.2f} {} {}'.format("head", track.score, track.track_id, track.state)
             # print("++++++++++++++++++++++++++++++++++++label:", label)
             label_size = draw.textsize(label, font)
@@ -178,13 +179,20 @@ def main(yolo, input_path, output_path):
         print(time.time() - read_t1)
 
         ################ 批量入库 ################
-        curr_time = formatTimestamp(int(read_t1))    # 当前时间按读取时间算
-        if flag == "NORMAL":
-            savefile = os.path.join(normal_save_path, ip + "_" + formatTimestamp(int(read_t1)) + ".jpg")
-        else:
-            savefile = os.path.join(evade_save_path, ip + "_" + formatTimestamp(int(read_t1)) + ".jpg")
-        cv2.imwrite(savefile, frame)    # 保存到文件
-
+        if len(TrackContentList) > 0:    # 只有有人，才进行入库，保存等操作
+            curr_time = formatTimestamp(int(read_t1))    # 当前时间按读取时间算
+            if flag == "NORMAL":
+                savefile = os.path.join(normal_save_path, ip + "_" + curr_time + ".jpg")
+            else:
+                savefile = os.path.join(evade_save_path, ip + "_" + curr_time + ".jpg")
+            cv2.imwrite(savefile, frame)    # 保存到文件
+            saveManyDetails2DB(ip=ip,
+                               curr_time=curr_time,
+                               savefile=savefile,
+                               read_time=read_time,
+                               detect_time=detect_time,
+                               predicted_class=tracker_type,
+                               TrackContentList=TrackContentList)    # 批量入库
 
         if isOutput:    # 识别后的视频保存
             out.write(frame)

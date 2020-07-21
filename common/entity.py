@@ -45,18 +45,35 @@ def getBox(line):
     else:
         return None
 
+
 '''
     追踪人的内容
-    原因：tracker.tracks里没有gate_num（闸机编号），pass_status（通过状态）字段
+    原因：tracker.tracks里没有gate_num（闸机编号），pass_status（通过状态），direction（方向）字段
 '''
 class TrackContent:
-    def __init__(self, gate_num, pass_status, score, track_id, state, bbox):
+    def __init__(self, gate_num, pass_status, score, track_id, state, bbox, direction):
         self.gate_num = gate_num    # 闸机编号
         self.pass_status = pass_status    # 通过状态：0正常通过，1涉嫌逃票
         self.score = score    # 得分值
         self.track_id = track_id    # 人的id
         self.state = state    # 人的状态：1未确认，2已确认，3已丢失
         self.bbox = bbox    # 人物框：左上右下
+        self.direction = direction    # 方向：0出站，1进站
+
+if __name__ == '__main__':
+    trackContent = TrackContent(gate_num=0,
+                                pass_status=0,
+                                score=.99,
+                                track_id=15,
+                                state=1,
+                                bbox=[1, 2, 3, 4],
+                                direction=0)
+
+    import json
+    # s = eval(trackContent)
+    # obj = s.__dict__, ensure_ascii = False
+    s = json.dumps(obj=trackContent.__dict__, ensure_ascii=False)
+    print(s)
 
 
 
