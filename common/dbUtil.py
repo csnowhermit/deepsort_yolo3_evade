@@ -28,16 +28,23 @@ def saveManyDetails2DB(ip, curr_time, savefile, read_time, detect_time, predicte
             sql = sql + '''
                             (curr_time, savefile, pass_status, read_time, detect_time, 
                             predicted_class, score, box, person_id, trackState, 
-                            ip, gate_num, direction) 
+                            ip, gate_num, gate_status, gate_light_status, direction) 
                             VALUES ('%s', '%s', '%s', %f, %f, 
-                                    '%s', %f, '%s', %d, %d, '%s', '%s', '%s')
+                                    '%s', %f, '%s', %d, %d, 
+                                    '%s', '%s', '%s', '%s', '%s')
                         ''' % (curr_time, savefile, trackContent.pass_status, read_time, detect_time,
-                               predicted_class, trackContent.score, trackContent.bbox, trackContent.track_id,
-                               trackContent.state,
-                               ip, trackContent.gate_num, trackContent.direction)
+                               predicted_class, trackContent.score, trackContent.bbox, trackContent.track_id,trackContent.state,
+                               ip, trackContent.gate_num, trackContent.gate_status, trackContent.gate_light_status, trackContent.direction)
             cursor.execute(sql)
             conn.commit()
             log.logger.info("curr_time: %s, savefile: %s, select db for details." % (curr_time, savefile))
+
+            # 出现这个，说明人与闸机门、闸机灯的联动出现问题
+            if trackContent.gate_num == 2 and trackContent.gate_light_status == "NoLight":
+                print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                print("trackContent.gate_num == 2 and trackContent.gate_light_status == NoLight")
+                print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                exit(1)
         except Exception as e:
             log.logger.error(traceback.format_exc())
             log.logger.error("\n%s" % sql)

@@ -17,7 +17,6 @@ from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
-import imutils.video
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
 from common.config import tracker_type, normal_save_path, evade_save_path, ip
@@ -72,6 +71,7 @@ def main(yolo, input_path, output_path):
 
     while True:
         read_t1 = time.time()    # 读取动作开始
+        print("===================")
         ret, frame = video_capture.read()  # frame shape (h, w, c) (1080, 1920, 3)
         if ret != True:
              break
@@ -81,7 +81,7 @@ def main(yolo, input_path, output_path):
         # image = Image.fromarray(frame)
         image = Image.fromarray(frame[...,::-1])  # bgr to rgb
         (person_classes, person_boxs, person_scores), \
-        (other_classes, other_boxs, other_scores) = yolo.detect_image(image)
+        (other_classes, other_boxs, other_scores) = yolo.detect_image(image)    # person_boxs格式：左上宽高
         # print("person:", person_boxs, person_scores)    # 返回的结果均为[x, y, w, h]
         # print("other:", other_classes, other_boxs, other_scores)
 
@@ -91,7 +91,7 @@ def main(yolo, input_path, output_path):
         # print("detections:", detections, [det.confidence for det in detections])    # [<deep_sort.detection.Detection object at 0x000001AA02280A90>] [0.9554405808448792]
 
         # Run non-maxima suppression.
-        boxes = np.array([d.tlwh for d in detections])
+        boxes = np.array([d.tlwh for d in detections])    # d.tlwh的格式：左上宽高
         # print("====1.", boxes)
         scores = np.array([d.confidence for d in detections])
         # print("====2.", scores)
@@ -183,8 +183,8 @@ def main(yolo, input_path, output_path):
             curr_time = formatTimestamp(int(read_t1))    # 当前时间按读取时间算
             if flag == "NORMAL":    # 正常情况
                 savefile = os.path.join(normal_save_path, ip + "_" + curr_time + ".jpg")
-                # print(cv2.imwrite(savefile, frame))  # 保存到文件
-                cv2.imencode('.png', frame)[1].tofile(savefile)
+                print(cv2.imwrite(savefile, frame))  # 保存到文件
+                # cv2.imencode('.png', frame)[1].tofile(savefile)
             elif flag == "WARNING":    # 逃票情况
                 savefile = os.path.join(evade_save_path, ip + "_" + curr_time + ".jpg")
                 print(cv2.imwrite(savefile, frame))    # 保存到文件
@@ -197,7 +197,6 @@ def main(yolo, input_path, output_path):
                                detect_time=detect_time,
                                predicted_class=tracker_type,
                                TrackContentList=TrackContentList)    # 批量入库
-
         if isOutput:    # 识别后的视频保存
             out.write(frame)
     yolo.close_session()
