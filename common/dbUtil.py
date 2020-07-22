@@ -37,10 +37,10 @@ def saveManyDetails2DB(ip, curr_time, savefile, read_time, detect_time, predicte
                                ip, trackContent.gate_num, trackContent.direction)
             cursor.execute(sql)
             conn.commit()
-            log.logger.info("%s %s %s " % (curr_time, savefile, json.dumps(obj=trackContent.__dict__, ensure_ascii=False)))
+            log.logger.info("curr_time: %s, savefile: %s, select db for details." % (curr_time, savefile))
         except Exception as e:
             log.logger.error(traceback.format_exc())
-            log.logger.error(sql)
+            log.logger.error("\n%s" % sql)
             conn.rollback()
 
 

@@ -16,7 +16,8 @@ def getContextParam():
             select gate_num, direction, default_direct, entrance,
                    entrance_direct, entrance_gate_num, displacement,
                    passway_area, gate_area, gate_light_area 
-            from cap_location where is_enabled='y' and ip='%s'
+            from cap_location where is_enabled='y' and ip='%s' 
+            order by gate_num asc
     ''' %  (ip)
     cursor.execute(sql)
     results = cursor.fetchall()

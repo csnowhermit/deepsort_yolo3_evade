@@ -181,11 +181,15 @@ def main(yolo, input_path, output_path):
         ################ 批量入库 ################
         if len(TrackContentList) > 0:    # 只有有人，才进行入库，保存等操作
             curr_time = formatTimestamp(int(read_t1))    # 当前时间按读取时间算
-            if flag == "NORMAL":
+            if flag == "NORMAL":    # 正常情况
                 savefile = os.path.join(normal_save_path, ip + "_" + curr_time + ".jpg")
-            else:
+                # print(cv2.imwrite(savefile, frame))  # 保存到文件
+                cv2.imencode('.png', frame)[1].tofile(savefile)
+            elif flag == "WARNING":    # 逃票情况
                 savefile = os.path.join(evade_save_path, ip + "_" + curr_time + ".jpg")
-            cv2.imwrite(savefile, frame)    # 保存到文件
+                print(cv2.imwrite(savefile, frame))    # 保存到文件
+            else:    # 没人的情况
+                pass
             saveManyDetails2DB(ip=ip,
                                curr_time=curr_time,
                                savefile=savefile,

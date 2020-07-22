@@ -45,7 +45,15 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
     up_distance_threshold = height * up_distance_rate
     down_distance_threshold = height * down_distance_rate
 
-    bboxes = [track.to_tlbr() for track in tracks]    # 所有人的人物框
+    # bboxes = [track.to_tlbr() for track in tracks]    # 所有人的人物框
+    bboxes = [[int(track.to_tlbr()[0]),
+               int(track.to_tlbr()[1]),
+               int(track.to_tlbr()[2]),
+               int(track.to_tlbr()[3])] for track in tracks]  # 所有人的人物框
+
+    if len(bboxes) < 1:
+        flag = "NO_ONE"
+        return flag, TrackContentList    # 没人的话返回标识“NO_ONE”
 
     # 1.判断各自在哪个通道内
     which_gateList = isin_which_gate(bboxes)
