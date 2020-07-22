@@ -108,7 +108,7 @@ def main(yolo, input_path, output_path):
 
 
         # 判定通行状态：0正常通过，1涉嫌逃票
-        flag, TrackContentList = evade_vote(tracker.tracks, other_classes, other_boxs, other_scores, frame.shape[0])
+        flag, TrackContentList = evade_vote(tracker.tracks, other_classes, other_boxs, other_scores, frame.shape[0])    # frame.shape, (h, w, c)
 
         detect_time = time.time() - detect_t1    # 检测动作结束
 

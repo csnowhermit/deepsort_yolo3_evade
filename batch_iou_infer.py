@@ -20,10 +20,11 @@ box2 = [[0, 0, 2, 1],
 # 1.先判断每个人在哪个闸机下
 print("1.先判断每个人在哪个闸机下")
 iouList = calc_iou(box1, box2)
+print("iouList:", iouList)
 
 index = []
 for iou in iouList:
-    print(iou)
+    # print(iou)
     index.append(iou.argmax())
 print("index:", index)    # index值为闸机编号
 

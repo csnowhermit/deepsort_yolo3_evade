@@ -18,9 +18,9 @@ class CapLocation:
         self.entrance_direct = entrance_direct    # 出入口的方向：0出站，1进站
         self.entrance_gate_num = entrance_gate_num    # 出入口的第几个闸机，针对一排闸机用多个摄像头的情况
         self.displacement = displacement    # 画面上是向上走（up）还是向下走（down）
-        self.passway_area = getBox(passway_area)    # 目标框的格式转换
-        self.gate_area = getBox(gate_area)
-        self.gate_light_area = getBox(gate_light_area)
+        self.passway_area = getBox(passway_area)    # 目标框的格式转换，通道区域
+        self.gate_area = getBox(gate_area)    # 闸机门
+        self.gate_light_area = getBox(gate_light_area)    # 闸机灯：默认为whiteLight，遇NoLight为无灯（表示画面看不见灯）
 
 '''
     每一个候选框：左上右下
@@ -51,7 +51,7 @@ def getBox(line):
     原因：tracker.tracks里没有gate_num（闸机编号），pass_status（通过状态），direction（方向）字段
 '''
 class TrackContent:
-    def __init__(self, gate_num, pass_status, score, track_id, state, bbox, direction):
+    def __init__(self, gate_num, pass_status, score, track_id, state, bbox, direction, gate_status, gate_light_status):
         self.gate_num = gate_num    # 闸机编号
         self.pass_status = pass_status    # 通过状态：0正常通过，1涉嫌逃票
         self.score = score    # 得分值
@@ -59,6 +59,8 @@ class TrackContent:
         self.state = state    # 人的状态：1未确认，2已确认，3已丢失
         self.bbox = bbox    # 人物框：左上右下
         self.direction = direction    # 方向：0出站，1进站
+        self.gate_status = gate_status    # 闸机门状态：Open、Close（检测到闸机门视为Close）
+        self.gate_light_status = gate_light_status    # 闸机灯状态：redLight、greenLight、yellowLight、NoLight
 
 if __name__ == '__main__':
     trackContent = TrackContent(gate_num=0,

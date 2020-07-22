@@ -11,7 +11,7 @@
  Target Server Version : 80012
  File Encoding         : 65001
 
- Date: 17/07/2020 16:15:53
+ Date: 22/07/2020 09:15:31
 */
 
 SET NAMES utf8mb4;
@@ -42,18 +42,24 @@ CREATE TABLE `cap_location`  (
 -- ----------------------------
 -- Records of cap_location
 -- ----------------------------
-INSERT INTO `cap_location` VALUES ('10.6.8.181', '0', '2', '0', 'D', '0', '0', 'down', '0_0_155_360', '0_176_118_199', NULL, '640x360', '2020-07-16 14:19:02', NULL, 'y');
-INSERT INTO `cap_location` VALUES ('10.6.8.181', '1', '0', '0', 'D', '0', '1', 'down', '43_0_420_360', '249_128_408_183', '176_161_240_199', '640x360', '2020-07-16 14:20:26', NULL, 'y');
-INSERT INTO `cap_location` VALUES ('10.6.8.181', '2', '0', '0', 'D', '0', '2', 'down', '460_0_604_360', '488_161_582_202', '421_150_487_189', '640x360', '2020-07-16 14:21:36', NULL, 'y');
-INSERT INTO `cap_location` VALUES ('10.6.8.222', '0', '1', '1', 'AE', '1', '0', 'up', '114_0_282_480', '133_176_271_230', '271_187_344_234', '640x480', '2020-07-16 14:30:16', NULL, 'y');
-INSERT INTO `cap_location` VALUES ('10.6.8.222', '1', '1', '1', 'AE', '1', '1', 'up', '339_0_504_480', '349_218_489_268', '504_188_558_232', '640x480', '2020-07-16 14:31:28', NULL, 'y');
-INSERT INTO `cap_location` VALUES ('10.6.8.222', '2', '1', '1', 'AE', '1', '2', 'up', '521_0_640_480', '558_174_627_224', NULL, '640x480', '2020-07-16 14:32:26', NULL, 'y');
+INSERT INTO `cap_location` VALUES ('10.6.8.181', '0', '2', '0', 'D', '0', '0', 'down', '0_0_155_360', '0_176_118_199', '0_0_0_0', '640x360', '2020-07-16 14:19:02', NULL, 'n');
+INSERT INTO `cap_location` VALUES ('10.6.8.181', '1', '0', '0', 'D', '0', '1', 'down', '43_0_420_360', '249_128_408_183', '176_161_240_199', '640x360', '2020-07-16 14:20:26', NULL, 'n');
+INSERT INTO `cap_location` VALUES ('10.6.8.181', '2', '0', '0', 'D', '0', '2', 'down', '460_0_604_360', '488_161_582_202', '421_150_487_189', '640x360', '2020-07-16 14:21:36', NULL, 'n');
+INSERT INTO `cap_location` VALUES ('10.6.8.222', '0', '1', '1', 'AE', '1', '0', 'up', '114_0_282_480', '133_176_271_230', '271_187_344_234', '640x480', '2020-07-16 14:30:16', NULL, 'n');
+INSERT INTO `cap_location` VALUES ('10.6.8.222', '1', '1', '1', 'AE', '1', '1', 'up', '339_0_504_480', '349_218_489_268', '504_188_558_232', '640x480', '2020-07-16 14:31:28', NULL, 'n');
+INSERT INTO `cap_location` VALUES ('10.6.8.222', '2', '1', '1', 'AE', '1', '2', 'up', '521_0_640_480', '558_174_627_224', '0_0_0_0', '640x480', '2020-07-16 14:32:26', NULL, 'n');
+INSERT INTO `cap_location` VALUES ('10.6.8.181', '0', '2', '0', 'D', '0', '0', 'down', '0_0_470_1080', '3_531_353_589', '0_0_0_0', '1920x1080', '2020-07-21_18:19:35', NULL, 'y');
+INSERT INTO `cap_location` VALUES ('10.6.8.181', '1', '0', '0', 'D', '0', '1', 'down', '730_0_1277_1080', '755_413_1213_525', '531_487_709_595', '1920x1080', '2020-07-21_18:23:20', NULL, 'y');
+INSERT INTO `cap_location` VALUES ('10.6.8.181', '2', '0', '0', 'D', '0', '2', 'down', '1379_0_1823_1080', '1463_487_1737_595', '1269_455_1449_561', '1920x1080', '2020-07-21_18:26:42', NULL, 'y');
+INSERT INTO `cap_location` VALUES ('10.6.8.222', '0', '1', '1', 'AE', '1', '0', 'up', '343_0_859_1080', '413_411_809_537', '825_447_1023_559', '1920x1080', '2020-07-21_18:30:25', NULL, 'y');
+INSERT INTO `cap_location` VALUES ('10.6.8.222', '1', '1', '1', 'AE', '1', '1', 'up', '1017_0_1539_1080', '1051_499_1469_613', '1531_437_1681_539', '1920x1080', '2020-07-21_18:33:18', NULL, 'y');
+INSERT INTO `cap_location` VALUES ('10.6.8.222', '2', '1', '1', 'AE', '1', '2', 'up', '1571_0_1920_1080', '1675_399_1893_503', '0_0_0_0', '1920x1080', '2020-07-21_18:35:24', NULL, 'y');
 
 -- ----------------------------
--- Table structure for details_10.6.8.181
+-- Table structure for details_10_6_8_181
 -- ----------------------------
-DROP TABLE IF EXISTS `details_10.6.8.181`;
-CREATE TABLE `details_10.6.8.181`  (
+DROP TABLE IF EXISTS `details_10_6_8_181`;
+CREATE TABLE `details_10_6_8_181`  (
   `curr_time` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '当前时刻，精确到s',
   `savefile` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '保存文件路径',
   `pass_status` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '通过状态：0正常通过，1涉嫌逃票',
@@ -66,6 +72,8 @@ CREATE TABLE `details_10.6.8.181`  (
   `trackState` int(2) NULL DEFAULT NULL COMMENT '确认状态：1未确认，2已确认',
   `ip` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '摄像机ip',
   `gate_num` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '闸机编号',
+  `gate_status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '闸机门状态',
+  `gate_light_status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '闸机灯状态',
   `direction` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '方向：0出站，1进站'
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
