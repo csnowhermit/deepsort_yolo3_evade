@@ -79,16 +79,13 @@ def main(yolo):
 
         detections = [Detection(bbox, confidence, feature) for bbox, confidence, feature in
                       zip(person_boxs, person_scores, features)]
-        # print("detections:", detections, [det.confidence for det in detections])    # [<deep_sort.detection.Detection object at 0x000001AA02280A90>] [0.9554405808448792]
 
         # Call the tracker
         tracker.predict()
         tracker.update(detections)
         trackList = []  # 新的trackList
 
-        if len(person_boxs) < 1:
-            tracker.tracks.clear()  # 如果画面中没人，则清空现有的tracks
-        else:
+        if len(person_boxs) > 0:
             person_boxs_ltbr = [[person[0],
                                  person[1],
                                  person[0] + person[2],
