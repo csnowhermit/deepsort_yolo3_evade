@@ -97,11 +97,23 @@ def create_detail_info_table(table_name):
     log.logger.info("%s 表已创建: %s" % (table_name, ret))
     return ret
 
-if __name__ == '__main__':
-    print(table_exists("details_10.6.8.181"))
-    print(table_exists("details_10.6.8.222"))
+'''
+    获取当前最大person_id
+'''
+def getMaxPersonID(table_name):
+    sql = "select max(person_id) from %s;" % (table_name)
+    cursor.execute(sql)
+    results = cursor.fetchall()
+    max_person_id = results[0][0]
+    log.logger.info("当前最大person_id：%d" % max_person_id)
+    return max_person_id
 
-    if table_exists(table_name) is False:
-        print(create_detail_info_table(table_name))
-    else:
-        print(table_name + " 表已存在")
+if __name__ == '__main__':
+    # print(table_exists("details_10.6.8.181"))
+    # print(table_exists("details_10.6.8.222"))
+    #
+    # if table_exists(table_name) is False:
+    #     print(create_detail_info_table(table_name))
+    # else:
+    #     print(table_name + " 表已存在")
+    print(getMaxPersonID(table_name))
