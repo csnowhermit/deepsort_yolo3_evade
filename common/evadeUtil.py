@@ -265,7 +265,7 @@ def getGateLightStatusList(real_gate_light_cls_list, real_gate_light_area_list):
         for i in range(len(iou_result)):
             iou = iou_result[i]
             print("getGateLightStatusList-iou.argmax:", type(iou), iou.argmax(), iou.max())    # iou.argmax()，表示最大值所在的下标
-            log.logger.info("getGateLightStatusList-iou.argmax:" % (type(iou), iou.argmax(), iou.max()))
+            log.logger.info("getGateLightStatusList-iou.argmax: %s %s %s" % (type(iou), iou.argmax(), iou.max()))
             if iou.max() > 0:    # 只有最大iou>0时，才能改状态。避免[0, 0, 0]最大iou是0而修改了第一个灯的状态
                 gate_light_status_list[iou.argmax()] = real_gate_light_cls_list[i]    # 第i个值，表示在real_gate_light_area_list的第i行
     return gate_light_status_list

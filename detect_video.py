@@ -8,6 +8,7 @@ import time
 import warnings
 import cv2
 import argparse
+import traceback
 import numpy as np
 from yolo import YOLO
 
@@ -244,7 +245,10 @@ if __name__ == '__main__':
     FLAGS = parser.parse_args()
 
     if "input" in FLAGS:
-        main(YOLO(), FLAGS.input, FLAGS.output)
+        try:
+            main(YOLO(), FLAGS.input, FLAGS.output)
+        except Exception as e:
+            log.logger.error(traceback.format_exc())
     else:
         print("Must specify at least video_input_path.  See usage with --help.")
 
