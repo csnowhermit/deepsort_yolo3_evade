@@ -212,8 +212,8 @@ def main(yolo, input_path, output_path):
                 log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time, flag, savefile, status))
             elif flag == "WARNING":    # 逃票情况
                 savefile = os.path.join(evade_save_path, ip + "_" + curr_time + ".jpg")
-                tag = cv2.imwrite(filename=savefile, img=result)
-                log.logger.warn("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time, flag, savefile, tag))
+                status = cv2.imwrite(filename=savefile, img=result)
+                log.logger.warn("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time, flag, savefile, status))
 
             else:    # 没人的情况
                 log.logger.info("时间: %s, 状态: %s" % (curr_time, flag))
