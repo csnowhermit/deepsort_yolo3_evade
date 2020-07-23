@@ -58,7 +58,6 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
     print("人间距上限: %f, 下限: %f" % (up_distance_threshold, down_distance_threshold))
     log.logger.info("人间距上限: %f, 下限: %f" % (up_distance_threshold, down_distance_threshold))
 
-    # bboxes = [track.to_tlbr() for track in tracks]    # 所有人的人物框
     bboxes = [[int(track.to_tlbr()[0]),
                int(track.to_tlbr()[1]),
                int(track.to_tlbr()[2]),
@@ -68,6 +67,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
         flag = "NOBODY"
         log.logger.warn(flag)
         return flag, TrackContentList    # 没人的话返回标识“NOBODY”，不用走以下流程
+
 
     ## 1.先处理其他框：闸机门、闸机灯
     # 1.1、先转框格式
@@ -166,10 +166,12 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                     if distance >= down_distance_threshold and distance <= up_distance_threshold:  # 如果距离满足条件
                         suspicion1 = suspicion_evade_boxes[center.index(center[i])]  # 嫌疑人1
                         suspicion2 = suspicion_evade_boxes[center.index(center[j])]  # 嫌疑人2
-                        # print(suspicion1, suspicion2, "涉嫌逃票")    # [0, 0, 1, 2] [1, 1, 2, 2] 涉嫌逃票
+                        print(suspicion1, suspicion2, "涉嫌逃票")    # [0, 0, 1, 2] [1, 1, 2, 2] 涉嫌逃票
+                        log.logger.warn("%s %s 涉嫌逃票" % (suspicion1, suspicion2))
                         index1 = bboxes.index(suspicion1)
                         index2 = bboxes.index(suspicion2)
-                        # print("这两人真实序号：", index1, index2)    # 这两人真实序号： 0 2
+                        print("这两人真实序号：", index1, index2)    # 这两人真实序号： 0 2
+                        log.logger.warn("这两人真实序号: %d %d" % (index1, index2))
                         evade_index_list.append(index1)
                         evade_index_list.append(index2)
 
@@ -181,12 +183,6 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                 pass_status_list[evade_index_list[i]] = 1    # 更新通过状态为 1涉嫌逃票
             print("更新后的通行状态: %s" % (pass_status_list))
             log.logger.info("更新后的通行状态: %s" % (pass_status_list))
-            # for i in range(len(bboxes)):
-            #     if i in evade_index_list:
-            #         pass_status_list.append(1)    # 出现在涉嫌逃票列表的序号
-            #     else:
-            #         pass_status_list.append(0)
-
 
     ## 3.更新每个人的track内容：新增：闸机编号、通过状态、闸机门状态、闸机灯状态
     for (track, which_gate, pass_status) in zip(tracks, which_gateList, pass_status_list):

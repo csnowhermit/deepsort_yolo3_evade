@@ -37,19 +37,13 @@ def saveManyDetails2DB(ip, curr_time, savefile, read_time, detect_time, predicte
                                ip, trackContent.gate_num, trackContent.gate_status, trackContent.gate_light_status, trackContent.direction)
             cursor.execute(sql)
             conn.commit()
+            sql = ""
             log.logger.info("save to db successful!")
-
-            # 出现这个，说明人与闸机门、闸机灯的联动出现问题
-            if trackContent.gate_num == 2 and trackContent.gate_light_status == "NoLight":
-                print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-                print("trackContent.gate_num == 2 and trackContent.gate_light_status == NoLight")
-                print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-                exit(1)
         except Exception as e:
             log.logger.error(traceback.format_exc())
             log.logger.error("\n%s" % sql)
             conn.rollback()
-
+    return 0
 
 '''
     判断表是否存在
@@ -103,8 +97,11 @@ def create_detail_info_table(table_name):
 def getMaxPersonID(table_name):
     sql = "select max(person_id) from %s;" % (table_name)
     cursor.execute(sql)
-    results = cursor.fetchall()
-    max_person_id = results[0][0]
+    results = cursor.fetchall()    # results[0], <class 'tuple'>
+    if results[0][0] is None:
+        max_person_id = 0
+    else:
+        max_person_id = results[0][0]
     log.logger.info("start person_id：%d" % max_person_id)
     return max_person_id
 

@@ -141,8 +141,8 @@ class YOLO(object):
 
             x = int(box[1])    # 左
             y = int(box[0])    # 上
-            w = int(box[3] - box[1])    # 右-左：宽
-            h = int(box[2] - box[0])    # 下-上：高
+            w = int(box[3]) - int(box[1])    # 右-左：宽
+            h = int(box[2]) - int(box[0])    # 下-上：高
             if x < 0:
                 w = w + x
                 x = 0

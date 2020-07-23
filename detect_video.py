@@ -9,18 +9,16 @@ import warnings
 import cv2
 import argparse
 import numpy as np
-from PIL import Image
 from yolo import YOLO
 
-from deep_sort import preprocessing
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
-from common.config import tracker_type, normal_save_path, evade_save_path, ip, table_name, log
-from common.evadeUtil import evade_vote
+from common.config import tracker_type, normal_save_path, evade_save_path, ip, table_name, log, track_iou
+from common.evadeUtil import evade_vote, calc_iou
 from common.dateUtil import formatTimestamp
 from common.dbUtil import saveManyDetails2DB, getMaxPersonID
 
@@ -92,47 +90,57 @@ def main(yolo, input_path, output_path):
         features = encoder(frame, person_boxs)
 
         detections = [Detection(bbox, confidence, feature) for bbox, confidence, feature in zip(person_boxs, person_scores, features)]
-        # print("detections:", detections, [det.confidence for det in detections])    # [<deep_sort.detection.Detection object at 0x000001AA02280A90>] [0.9554405808448792]
 
-        # Run non-maxima suppression.
-        boxes = np.array([d.tlwh for d in detections])    # d.tlwh的格式：左上宽高
-        print("Run nms 1. boxes: %s" % (boxes))
-        log.logger.info("Run nms 1. %s" % (boxes))
-
-        scores = np.array([d.confidence for d in detections])
-        print("Run nms 2. scores: %s" % (scores))
-        log.logger.info("Run nms 2. %s" % (scores))
-
-        indices = preprocessing.non_max_suppression(boxes, nms_max_overlap, scores)
-        print("Run nms 3. indices: %s" % (indices))
-        log.logger.info("Run nms 3. indices: %s" % (indices))
-
-        detections = [detections[i] for i in indices]
-        print("Run nms 4. det: ", end='')
-        log.logger.info("Run nms 4. det: ")
-        for det in detections:
-            print("%s %s" % (det.confidence, det.to_tlbr()))
-            log.logger.info("\t%s %s" % (det.confidence, det.to_tlbr()))
-        print("\n")
+        # 原来有nms，现去掉，原因：yolo.detect_image()本身已经做了nms
 
         # Call the tracker
         tracker.predict()
         tracker.update(detections)
+        trackList = []  # 新的trackList
+
+        # 这里出现bug：误检，只检出一个人，为什么tracker.tracks中有三个人
+        # 原因：人走了，框还在
+        # 解决办法：更新后的tracker.tracks与person_boxs再做一次iou，对于每个person_boxs，只保留与其最大iou的track
+
+        if len(person_boxs) > 0:
+            person_boxs_ltbr = [[person[0],
+                                 person[1],
+                                 person[0] + person[2],
+                                 person[1] + person[3]] for person in person_boxs]    # person_boxs：左上宽高-->左上右下
+
+            track_box = [[int(track.to_tlbr()[0]),
+                          int(track.to_tlbr()[1]),
+                          int(track.to_tlbr()[2]),
+                          int(track.to_tlbr()[3])] for track in tracker.tracks]    # 追踪器中的人
+
+            iou_result = calc_iou(bbox1=person_boxs_ltbr, bbox2=track_box)  # 计算iou，做无效track框的过滤
+            which_track = []
+            for iou in iou_result:
+                if iou.max() > track_iou:  # 如果最大iou>0.45，则认为是这个人
+                    which_track.append(iou.argmax())  # 保存tracker.tracks中该人的下标
+            # 在tracker.tracks中移除不在which_track的元素
+            for i in range(len(tracker.tracks)):
+                if i in which_track:
+                    trackList.append(tracker.tracks[i])
+            # tracker.tracks.clear()  # 清空tracks    # tracker.tracks不能清空，原因：会丢失当前person_id信息
+
+        print("检测到 %d 人: %s" % (len(person_boxs), person_boxs))
+        print("追踪到 %d 人: %s" % (len(trackList), trackList))
+        log.logger.info("检测到 %d 人: %s" % (len(person_boxs), person_boxs))
+        log.logger.info("追踪到 %d 人: %s" % (len(trackList), trackList))
 
 
         # 判定通行状态：0正常通过，1涉嫌逃票
-        flag, TrackContentList = evade_vote(tracker.tracks, other_classes, other_boxs, other_scores, frame.shape[0])    # frame.shape, (h, w, c)
+        flag, TrackContentList = evade_vote(trackList, other_classes, other_boxs, other_scores, frame.shape[0])    # frame.shape, (h, w, c)
 
         detect_time = time.time() - detect_t1    # 检测动作结束
 
         # 标注
         draw = ImageDraw.Draw(image)
 
-        for track in tracker.tracks:    # 标注人，track.state=0/1，都在tracker.tracks中
+        for track in trackList:    # 标注人，track.state=0/1，都在tracker.tracks中
             bbox = track.to_tlbr()    # 左上右下
-            # print("==循环中。。", bbox)
             label = '{} {:.2f} {} {}'.format("head", track.score, track.track_id, track.state)
-            # print("++++++++++++++++++++++++++++++++++++label:", label)
             label_size = draw.textsize(label, font)
 
             left, top, right, bottom = bbox
@@ -141,7 +149,7 @@ def main(yolo, input_path, output_path):
             bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
             right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
             print(label, (left, top), (right, bottom))
-            log.logger.info("%s, (%f, %f), (%f, %f)" % (label, left, top, right, bottom))
+            log.logger.info("%s, (%d, %d), (%d, %d)" % (label, left, top, right, bottom))
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
@@ -168,7 +176,7 @@ def main(yolo, input_path, output_path):
             bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
             right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
             print(label, (left, top), (right, bottom))
-            log.logger.info("%s, (%f, %f), (%f, %f)" % (label, left, top, right, bottom))
+            log.logger.info("%s, (%d, %d), (%d, %d)" % (label, left, top, right, bottom))
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
@@ -189,20 +197,19 @@ def main(yolo, input_path, output_path):
         result = np.asarray(image)    # 这时转成np.ndarray后是rgb模式，out.write(result)保存为视频用
         # bgr = rgb[..., ::-1]    # rgb转bgr
         result = result[..., ::-1]
-        print("result.shape:", result.shape)
+        # print("result.shape:", result.shape)
         # cv2.imshow('', frame)
         # cv2.waitKey(1)
         print(time.time() - read_t1)
+        log.logger.info("%f" % (time.time() - read_t1))
 
         ################ 批量入库 ################
         if len(TrackContentList) > 0:    # 只有有人，才进行入库，保存等操作
             curr_time = formatTimestamp(int(read_t1))    # 当前时间按读取时间算
             if flag == "NORMAL":    # 正常情况
                 savefile = os.path.join(normal_save_path, ip + "_" + curr_time + ".jpg")
-                tag = cv2.imwrite(filename=savefile, img=result)
-                log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time, flag, savefile, tag))
-                # if cv2.imwrite(filename=savefile, img=result) is False:
-                #     exit(2)
+                status = cv2.imwrite(filename=savefile, img=result)
+                log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time, flag, savefile, status))
             elif flag == "WARNING":    # 逃票情况
                 savefile = os.path.join(evade_save_path, ip + "_" + curr_time + ".jpg")
                 tag = cv2.imwrite(filename=savefile, img=result)
@@ -217,9 +224,10 @@ def main(yolo, input_path, output_path):
                                detect_time=detect_time,
                                predicted_class=tracker_type,
                                TrackContentList=TrackContentList)    # 批量入库
+        print("******************* end a image reco *******************")
+        log.logger.info("******************* end a image reco *******************")
         if isOutput:    # 识别后的视频保存
             out.write(result)
-        print("******************* end a image reco *******************")
     yolo.close_session()
 
 if __name__ == '__main__':

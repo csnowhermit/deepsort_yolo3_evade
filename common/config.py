@@ -49,3 +49,5 @@ down_distance_rate = 0.18
 logfile = 'D:/evade_logs/evade_%s.log' % ip
 log = Logger(logfile, level='info')
 
+# 检出框与tracker框的iou，解决人走了框还在的情况
+track_iou = 0.45
