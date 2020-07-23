@@ -19,7 +19,7 @@ from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
-from common.config import tracker_type, normal_save_path, evade_save_path, ip, table_name
+from common.config import tracker_type, normal_save_path, evade_save_path, ip, table_name, log
 from common.evadeUtil import evade_vote
 from common.dateUtil import formatTimestamp
 from common.dbUtil import saveManyDetails2DB, getMaxPersonID
@@ -68,14 +68,17 @@ def main(yolo, input_path, output_path):
     isOutput = True if output_path != "" else False
     if isOutput:
         print("!!! TYPE:", type(output_path), type(video_FourCC), type(video_fps), type(video_size))
+        log.logger.info("!!! TYPE: %s %s %s %s" % (type(output_path), type(video_FourCC), type(video_fps), type(video_size)))
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
 
     while True:
         read_t1 = time.time()    # 读取动作开始
-        print("===================")
+        print("=================== start a image reco ===================")
+        log.logger.info("=================== start a image reco ===================")
         ret, frame = video_capture.read()  # frame shape (h, w, c) (1080, 1920, 3)
         if ret != True:
-             break
+            log.logger.error("video_capture.read(): %s" % ret)
+            break
         read_time = time.time() - read_t1    # 读取动作结束
         detect_t1 = time.time()    # 检测动作开始
 
@@ -93,15 +96,24 @@ def main(yolo, input_path, output_path):
 
         # Run non-maxima suppression.
         boxes = np.array([d.tlwh for d in detections])    # d.tlwh的格式：左上宽高
-        # print("====1.", boxes)
+        print("Run nms 1. boxes: %s" % (boxes))
+        log.logger.info("Run nms 1. %s" % (boxes))
+
         scores = np.array([d.confidence for d in detections])
-        # print("====2.", scores)
+        print("Run nms 2. scores: %s" % (scores))
+        log.logger.info("Run nms 2. %s" % (scores))
+
         indices = preprocessing.non_max_suppression(boxes, nms_max_overlap, scores)
-        # print("====3.", indices)
+        print("Run nms 3. indices: %s" % (indices))
+        log.logger.info("Run nms 3. indices: %s" % (indices))
+
         detections = [detections[i] for i in indices]
-        # for det in detections:
-        #     print("====4.", det.confidence, det.to_tlbr(), end=" ")
-        # print("\n")
+        print("Run nms 4. det: ", end='')
+        log.logger.info("Run nms 4. det: ")
+        for det in detections:
+            print("%s %s" % (det.confidence, det.to_tlbr()))
+            log.logger.info("\t%s %s" % (det.confidence, det.to_tlbr()))
+        print("\n")
 
         # Call the tracker
         tracker.predict()
@@ -129,6 +141,7 @@ def main(yolo, input_path, output_path):
             bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
             right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
             print(label, (left, top), (right, bottom))
+            log.logger.info("%s, (%f, %f), (%f, %f)" % (label, left, top, right, bottom))
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
@@ -155,6 +168,7 @@ def main(yolo, input_path, output_path):
             bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
             right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
             print(label, (left, top), (right, bottom))
+            log.logger.info("%s, (%f, %f), (%f, %f)" % (label, left, top, right, bottom))
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
@@ -172,9 +186,10 @@ def main(yolo, input_path, output_path):
             draw.text(text_origin, label, fill=(0, 0, 0), font=font)
         del draw
 
-        frame = np.asarray(image)    # 这时转成np.ndarray后是rgb模式
+        result = np.asarray(image)    # 这时转成np.ndarray后是rgb模式，out.write(result)保存为视频用
         # bgr = rgb[..., ::-1]    # rgb转bgr
-        frame = frame[..., ::-1]
+        result = result[..., ::-1]
+        print("result.shape:", result.shape)
         # cv2.imshow('', frame)
         # cv2.waitKey(1)
         print(time.time() - read_t1)
@@ -184,13 +199,17 @@ def main(yolo, input_path, output_path):
             curr_time = formatTimestamp(int(read_t1))    # 当前时间按读取时间算
             if flag == "NORMAL":    # 正常情况
                 savefile = os.path.join(normal_save_path, ip + "_" + curr_time + ".jpg")
-                print(cv2.imwrite(savefile, frame))  # 保存到文件
-                # cv2.imencode('.png', frame)[1].tofile(savefile)
+                tag = cv2.imwrite(filename=savefile, img=result)
+                log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time, flag, savefile, tag))
+                # if cv2.imwrite(filename=savefile, img=result) is False:
+                #     exit(2)
             elif flag == "WARNING":    # 逃票情况
                 savefile = os.path.join(evade_save_path, ip + "_" + curr_time + ".jpg")
-                print(cv2.imwrite(savefile, frame))    # 保存到文件
+                tag = cv2.imwrite(filename=savefile, img=result)
+                log.logger.warn("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time, flag, savefile, tag))
+
             else:    # 没人的情况
-                pass
+                log.logger.info("时间: %s, 状态: %s" % (curr_time, flag))
             saveManyDetails2DB(ip=ip,
                                curr_time=curr_time,
                                savefile=savefile,
@@ -199,7 +218,8 @@ def main(yolo, input_path, output_path):
                                predicted_class=tracker_type,
                                TrackContentList=TrackContentList)    # 批量入库
         if isOutput:    # 识别后的视频保存
-            out.write(frame)
+            out.write(result)
+        print("******************* end a image reco *******************")
     yolo.close_session()
 
 if __name__ == '__main__':

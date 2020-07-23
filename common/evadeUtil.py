@@ -2,7 +2,7 @@ import os
 import math
 import numpy as np
 from collections import Counter
-from common.config import up_distance_rate, down_distance_rate
+from common.config import up_distance_rate, down_distance_rate, log
 from common.ContextParam import getContextParam
 from common.entity import TrackContent
 
@@ -55,6 +55,8 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
     flag = "NORMAL"    # 默认该帧图片的通行状态为NORMAL，遇到有逃票时改为WARNING
     up_distance_threshold = height * up_distance_rate
     down_distance_threshold = height * down_distance_rate
+    print("人间距上限: %f, 下限: %f" % (up_distance_threshold, down_distance_threshold))
+    log.logger.info("人间距上限: %f, 下限: %f" % (up_distance_threshold, down_distance_threshold))
 
     # bboxes = [track.to_tlbr() for track in tracks]    # 所有人的人物框
     bboxes = [[int(track.to_tlbr()[0]),
@@ -64,6 +66,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
 
     if len(bboxes) < 1:
         flag = "NOBODY"
+        log.logger.warn(flag)
         return flag, TrackContentList    # 没人的话返回标识“NOBODY”，不用走以下流程
 
     ## 1.先处理其他框：闸机门、闸机灯
@@ -86,10 +89,12 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
     # 1.3、计算检测到的闸机位置与真实闸机位置的iou
     gate_status_list = getGateStatusList(real_gate_area_list)    # 从左到右，按序标识闸机开关情况
     print("gate_status_list:", gate_status_list)    # gate_status_list: ['closed', 'closed', 'open']
+    log.logger.info("闸机开关状态 gate_status_list: %s" % (gate_status_list))
 
     # 1.4、绑定闸机灯与通道的关系
     gate_light_status_list = getGateLightStatusList(real_gate_light_cls_list, real_gate_light_area_list)
     print("gate_light_status_list:", gate_light_status_list)    # gate_light_status_list: ['NoLight', 'whiteLight', 'greenLight']
+    log.logger.info("灯状态 gate_light_status_list: %s" % (gate_light_status_list))
 
     ################################################
     ## 至此，闸机门和闸机灯状态是全局的（即，只要有一个通道有人，则所有门、灯都有状态）
@@ -101,6 +106,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
     # 2.1、判断各自在哪个通道内
     which_gateList = isin_which_gate(bboxes)    # which_gateList，有人的闸机序列
     print("which_gateList:", which_gateList)    # which_gateList: [2]，
+    log.logger.info("有人的闸机序列 which_gateList: %s" % (which_gateList))
     # which_gateList = [1, 2, 1, 2]    # 写死，测试用
 
     ## 方法1：已废弃
@@ -115,6 +121,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
     # 2.2、判断各自通道内的人数
     gateCounter = Counter(which_gateList)
     print("gateCounter:", gateCounter)
+    log.logger.info("各通道内人数 gateCounter: %s" % (gateCounter))
 
     multi_personList = []    # 同时出现多人的闸机序列
     for res in gateCounter.keys():
@@ -134,6 +141,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                 else:
                     passwayPersonDict[which_gateList[i]] = [i]
         print("passwayPersonDict:", passwayPersonDict)
+        log.logger.info("通道-人对应关系 passwayPersonDict: %s" % (passwayPersonDict))
 
         for passPersonList in passwayPersonDict.keys():    # 逐个处理每一个通道的多人情况
             suspicion_evade_boxes = []  # 逃票嫌疑list
@@ -152,7 +160,8 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                     distance = math.sqrt(((person1x - person2x) ** 2) +
                                          ((person1y - person2y) ** 2))
 
-                    print(center[i], center[j], distance)
+                    print("person1: %s, person2: %s, distance: %f" % (center[i], center[j], distance))
+                    log.logger.info("person1: %s, person2: %s, distance: %f" % (center[i], center[j], distance))
 
                     if distance >= down_distance_threshold and distance <= up_distance_threshold:  # 如果距离满足条件
                         suspicion1 = suspicion_evade_boxes[center.index(center[i])]  # 嫌疑人1
@@ -165,10 +174,13 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                         evade_index_list.append(index2)
 
                         flag = "WARNING"    # 检出有人逃票，该标识为WARNING
+                        log.logger.warn("检测到涉嫌逃票: %s" % flag)
 
             # 更新每个人的通行状态
             for i in range(len(evade_index_list)):    # evade_index_list[i]为人在bboxes中的真实序号
                 pass_status_list[evade_index_list[i]] = 1    # 更新通过状态为 1涉嫌逃票
+            print("更新后的通行状态: %s" % (pass_status_list))
+            log.logger.info("更新后的通行状态: %s" % (pass_status_list))
             # for i in range(len(bboxes)):
             #     if i in evade_index_list:
             #         pass_status_list.append(1)    # 出现在涉嫌逃票列表的序号

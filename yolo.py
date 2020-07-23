@@ -14,7 +14,7 @@ from yolo3.model import yolo_eval, yolo_body
 from yolo3.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
-from common.config import special_types
+from common.config import special_types, log
 
 class YOLO(object):
     _defaults = {
@@ -79,6 +79,7 @@ class YOLO(object):
                 'Mismatch between model and given anchor and class sizes'
 
         print('{} model, {} anchors: {}, and {} classes loaded, details: {}'.format(model_path, len(self.anchors), self.anchors, len(self.class_names), self.class_names))
+        log.logger.info('{} model, {} anchors: {}, and {} classes loaded, details: {}'.format(model_path, len(self.anchors), self.anchors, len(self.class_names), self.class_names))
 
         # Generate colors for drawing bounding boxes.
         hsv_tuples = [(x / len(self.class_names), 1., 1.)
@@ -135,6 +136,9 @@ class YOLO(object):
 
             box = out_boxes[i]  # 原始结果：上左下右
             score = out_scores[i]
+            print("原始检出：%s %s %s" % (predicted_class, box, score))
+            log.logger.info("原始检出：%s %s %s" % (predicted_class, box, score))
+
             x = int(box[1])    # 左
             y = int(box[0])    # 上
             w = int(box[3] - box[1])    # 右-左：宽

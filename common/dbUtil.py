@@ -37,7 +37,7 @@ def saveManyDetails2DB(ip, curr_time, savefile, read_time, detect_time, predicte
                                ip, trackContent.gate_num, trackContent.gate_status, trackContent.gate_light_status, trackContent.direction)
             cursor.execute(sql)
             conn.commit()
-            log.logger.info("curr_time: %s, savefile: %s, select db for details." % (curr_time, savefile))
+            log.logger.info("save to db successful!")
 
             # 出现这个，说明人与闸机门、闸机灯的联动出现问题
             if trackContent.gate_num == 2 and trackContent.gate_light_status == "NoLight":
@@ -105,7 +105,7 @@ def getMaxPersonID(table_name):
     cursor.execute(sql)
     results = cursor.fetchall()
     max_person_id = results[0][0]
-    log.logger.info("当前最大person_id：%d" % max_person_id)
+    log.logger.info("start person_id：%d" % max_person_id)
     return max_person_id
 
 if __name__ == '__main__':
