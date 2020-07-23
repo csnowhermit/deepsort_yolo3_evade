@@ -233,8 +233,10 @@ def getGateStatusList(real_gate_area_list):
         # iou_result = calc_iou(bbox1=gate_area_list, bbox2=real_gate_area_list)    # 这样做，当两个闸片分开别识别时，gate_status_list会数组越界
         iou_result = calc_iou(bbox1=real_gate_area_list, bbox2=gate_area_list)    # 行：检测到的闸机区域序列；列：真实位置的闸机区域序列
         print("getGateStatusList.iou_result:", iou_result)
+        log.logger.info("getGateStatusList.iou_result: %s" % (iou_result))
         for iou in iou_result:
             print("iou.argmax:", type(iou), iou.argmax(), iou.max())    # 检测np.ndarray中最大值
+            log.logger.info("getGateStatusList-iou.argmax: %s %s %s" % (type(iou), iou.argmax(), iou.max()))
             # gate_status_list.append(iou.argmax())
             gate_status_list[iou.argmax()] = "closed"    # 找到跟哪个闸机的iou最大，视为检测到的是谁的
     return gate_status_list
@@ -259,9 +261,11 @@ def getGateLightStatusList(real_gate_light_cls_list, real_gate_light_area_list):
     else:
         iou_result = calc_iou(bbox1=real_gate_light_area_list, bbox2=gate_light_area_list)    # 行：检测到的灯区域序列；列：真实位置灯区域序列
         print("getGateLightStatusList.iou_result:", iou_result)
+        log.logger.info("getGateLightStatusList.iou_result: %s" % (iou_result))
         for i in range(len(iou_result)):
             iou = iou_result[i]
             print("getGateLightStatusList-iou.argmax:", type(iou), iou.argmax(), iou.max())    # iou.argmax()，表示最大值所在的下标
+            log.logger.info("getGateLightStatusList-iou.argmax:" % (type(iou), iou.argmax(), iou.max()))
             if iou.max() > 0:    # 只有最大iou>0时，才能改状态。避免[0, 0, 0]最大iou是0而修改了第一个灯的状态
                 gate_light_status_list[iou.argmax()] = real_gate_light_cls_list[i]    # 第i个值，表示在real_gate_light_area_list的第i行
     return gate_light_status_list

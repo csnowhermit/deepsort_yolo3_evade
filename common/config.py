@@ -14,7 +14,8 @@ ip = "10.6.8.181"
 rtsp_url = "rtsp://admin:quickhigh123456@192.168.120.155/h264/ch1/sub/av_stream"    # 用子码流读取
 
 # 图像大小
-image_size = "1920x1080"
+# image_size = "1920x1080"
+image_size = (1920, 1080)    # 图片大小
 
 # 数据库
 conn = pymysql.connect(host='127.0.0.1',

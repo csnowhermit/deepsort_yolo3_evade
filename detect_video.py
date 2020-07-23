@@ -17,7 +17,7 @@ from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
-from common.config import tracker_type, normal_save_path, evade_save_path, ip, table_name, log, track_iou
+from common.config import tracker_type, normal_save_path, evade_save_path, ip, table_name, log, track_iou, image_size
 from common.evadeUtil import evade_vote, calc_iou
 from common.dateUtil import formatTimestamp
 from common.dbUtil import saveManyDetails2DB, getMaxPersonID
@@ -28,7 +28,6 @@ def main(yolo, input_path, output_path):
     # Definition of the parameters
     max_cosine_distance = 0.3
     nn_budget = None
-    nms_max_overlap = 1.0
     
     # Deep SORT
     model_filename = 'model_data/mars-small128.pb'
@@ -50,8 +49,6 @@ def main(yolo, input_path, output_path):
     np.random.seed(10101)  # Fixed seed for consistent colors across runs.
     np.random.shuffle(colors)  # Shuffle colors to decorrelate adjacent classes.
     np.random.seed(None)  # Reset seed to default.
-
-    image_size = (640, 480)    # 图片大小
 
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                               size=np.floor(3e-2 * image_size[1] + 0.5).astype('int32'))    # 640*480
@@ -197,26 +194,29 @@ def main(yolo, input_path, output_path):
         result = np.asarray(image)    # 这时转成np.ndarray后是rgb模式，out.write(result)保存为视频用
         # bgr = rgb[..., ::-1]    # rgb转bgr
         result = result[..., ::-1]
-        # print("result.shape:", result.shape)
-        # cv2.imshow('', frame)
-        # cv2.waitKey(1)
+
         print(time.time() - read_t1)
         log.logger.info("%f" % (time.time() - read_t1))
 
         ################ 批量入库 ################
         if len(TrackContentList) > 0:    # 只有有人，才进行入库，保存等操作
             curr_time = formatTimestamp(int(read_t1))    # 当前时间按读取时间算
+            curr_time_path = formatTimestamp(int(read_t1), format='%Y%m%d_%H%M%S')
             if flag == "NORMAL":    # 正常情况
-                savefile = os.path.join(normal_save_path, ip + "_" + curr_time + ".jpg")
-                status = cv2.imwrite(filename=savefile, img=result)
-                log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time, flag, savefile, status))
-            elif flag == "WARNING":    # 逃票情况
-                savefile = os.path.join(evade_save_path, ip + "_" + curr_time + ".jpg")
-                status = cv2.imwrite(filename=savefile, img=result)
-                log.logger.warn("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time, flag, savefile, status))
+                savefile = os.path.join(normal_save_path, ip + "_" + curr_time_path + ".jpg")
+                status = cv2.imwrite(filename=savefile, img=result)    # cv2.imwrite()保存文件，路径不能有2个及以上冒号
 
+                print("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+            elif flag == "WARNING":    # 逃票情况
+                savefile = os.path.join(evade_save_path, ip + "_" + curr_time_path + ".jpg")
+                status = cv2.imwrite(filename=savefile, img=result)
+
+                print("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                log.logger.warn("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
             else:    # 没人的情况
-                log.logger.info("时间: %s, 状态: %s" % (curr_time, flag))
+                print("时间: %s, 状态: %s" % (curr_time_path, flag))
+                log.logger.info("时间: %s, 状态: %s" % (curr_time_path, flag))
             saveManyDetails2DB(ip=ip,
                                curr_time=curr_time,
                                savefile=savefile,

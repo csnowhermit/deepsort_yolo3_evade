@@ -95,6 +95,9 @@ def create_detail_info_table(table_name):
     获取当前最大person_id
 '''
 def getMaxPersonID(table_name):
+    if table_exists(table_name) is False:
+        create_detail_info_table(table_name)
+
     sql = "select max(person_id) from %s;" % (table_name)
     cursor.execute(sql)
     results = cursor.fetchall()    # results[0], <class 'tuple'>
