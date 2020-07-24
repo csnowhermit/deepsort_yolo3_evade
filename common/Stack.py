@@ -25,7 +25,7 @@ class Stack:
 
     def push(self, item):
         if self.size() >= self.stack_size:
-            # for i in range(0, self.size()):
-            #     self.items.remove(self.items[0])
-            self.items.clear()    # 压栈时，超过缓冲区大小，直接清空
+            for i in range(self.size() - self.stack_size + 1):    # 压栈时，超过设置大小时，将最前面数据移除
+                self.items.remove(self.items[0])
+            # self.items.clear()    # 压栈时，超过缓冲区大小，直接清空
         self.items.append(item)

@@ -3,22 +3,25 @@
 
 from __future__ import division, print_function, absolute_import
 
+import os
 from timeit import time
 import warnings
 import cv2
+import traceback
 import numpy as np
 from yolo import YOLO
 
-from deep_sort import preprocessing
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
+from common.config import tracker_type, normal_save_path, evade_save_path, ip, table_name, log, track_iou, image_size, rtsp_url
+from common.evadeUtil import evade_vote, calc_iou
+from common.dateUtil import formatTimestamp
+from common.dbUtil import saveManyDetails2DB, getMaxPersonID
 from common.Stack import Stack
-from common.config import rtsp_url, tracker_type
-from common.evadeUtil import evade_vote
 import threading
 
 warnings.filterwarnings('ignore')
@@ -49,14 +52,14 @@ def detect_thread(frame_buffer, lock):
     # Definition of the parameters
     max_cosine_distance = 0.3
     nn_budget = None
-    nms_max_overlap = 1.0
 
     # Deep SORT
     model_filename = 'model_data/mars-small128.pb'
     encoder = gdet.create_box_encoder(model_filename, batch_size=1)
 
     metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
-    tracker = Tracker(metric)  # 用tracker来维护Tracks，每个track跟踪一个人
+    curr_person_id = getMaxPersonID(table_name)
+    tracker = Tracker(metric, n_start=curr_person_id)  # 用tracker来维护Tracks，每个track跟踪一个人
 
     class_names = yolo._get_class()
 
@@ -71,133 +74,181 @@ def detect_thread(frame_buffer, lock):
     np.random.shuffle(colors)  # Shuffle colors to decorrelate adjacent classes.
     np.random.seed(None)  # Reset seed to default.
 
-    image_size = (640, 480)  # 图片大小
-
     font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                               size=np.floor(3e-2 * image_size[1] + 0.5).astype('int32'))  # 640*480
     thickness = (image_size[0] + image_size[1]) // 300
 
     while True:
-        if frame_buffer.size() > 0:
-            read_t1 = time.time()    # 读取动作开始
-            lock.acquire()
-            frame = frame_buffer.pop()    # 每次拿最新的
-            lock.release()
+        try:
+            if frame_buffer.size() > 0:
+                read_t1 = time.time()  # 读取动作开始
+                lock.acquire()
+                frame = frame_buffer.pop()  # 每次拿最新的
+                lock.release()
 
-            read_time = time.time() - read_t1    # 读取动作结束
-            detect_t1 = time.time()    # 检测动作开始
+                read_time = time.time() - read_t1  # 读取动作结束
+                detect_t1 = time.time()  # 检测动作开始
 
-            # image = Image.fromarray(frame)
-            image = Image.fromarray(frame[..., ::-1])  # bgr to rgb
-            (person_classes, person_boxs, person_scores), \
-            (other_classes, other_boxs, other_scores) = yolo.detect_image(image)
-            # print("person:", person_boxs, person_scores)    # 返回的结果均为[x, y, w, h]
-            # print("other:", other_classes, other_boxs, other_scores)
+                # image = Image.fromarray(frame)
+                image = Image.fromarray(frame[..., ::-1])  # bgr to rgb
+                (person_classes, person_boxs, person_scores), \
+                (other_classes, other_boxs, other_scores) = yolo.detect_image(image)  # person_boxs格式：左上宽高
+                # print("person:", person_boxs, person_scores)    # 返回的结果均为[x, y, w, h]
+                # print("other:", other_classes, other_boxs, other_scores)
 
-            features = encoder(frame, person_boxs)
+                features = encoder(frame, person_boxs)
 
-            detections = [Detection(bbox, confidence, feature) for bbox, confidence, feature in
-                          zip(person_boxs, person_scores, features)]
-            # print("detections:", detections, [det.confidence for det in detections])    # [<deep_sort.detection.Detection object at 0x000001AA02280A90>] [0.9554405808448792]
+                detections = [Detection(bbox, confidence, feature) for bbox, confidence, feature in
+                              zip(person_boxs, person_scores, features)]
 
-            # Run non-maxima suppression.
-            boxes = np.array([d.tlwh for d in detections])
-            # print("====1.", boxes)
-            scores = np.array([d.confidence for d in detections])
-            # print("====2.", scores)
-            indices = preprocessing.non_max_suppression(boxes, nms_max_overlap, scores)
-            # print("====3.", indices)
-            detections = [detections[i] for i in indices]
-            # for det in detections:
-            #     print("====4.", det.confidence, det.to_tlbr(), end=" ")
-            # print("\n")
+                # 原来有nms，现去掉，原因：yolo.detect_image()本身已经做了nms
 
-            # Call the tracker
-            tracker.predict()
-            tracker.update(detections)
+                # Call the tracker
+                tracker.predict()
+                tracker.update(detections)
+                trackList = []  # 新的trackList
 
-            # 判定通行状态：0正常通过，1涉嫌逃票
-            flag, TrackContentList = evade_vote(tracker.tracks, other_classes, other_boxs, other_scores, frame.shape[0])
+                # 这里出现bug：误检，只检出一个人，为什么tracker.tracks中有三个人
+                # 原因：人走了，框还在
+                # 解决办法：更新后的tracker.tracks与person_boxs再做一次iou，对于每个person_boxs，只保留与其最大iou的track
 
-            detect_time = time.time() - detect_t1    # 检测动作结束
+                if len(person_boxs) > 0:
+                    person_boxs_ltbr = [[person[0],
+                                         person[1],
+                                         person[0] + person[2],
+                                         person[1] + person[3]] for person in person_boxs]  # person_boxs：左上宽高-->左上右下
 
-            # 标注
-            draw = ImageDraw.Draw(image)
+                    track_box = [[int(track.to_tlbr()[0]),
+                                  int(track.to_tlbr()[1]),
+                                  int(track.to_tlbr()[2]),
+                                  int(track.to_tlbr()[3])] for track in tracker.tracks]  # 追踪器中的人
 
-            for track in tracker.tracks:  # 标注人，track.state=0/1，都在tracker.tracks中
-                bbox = track.to_tlbr()  # 左上右下
-                print("==循环中。。", type(bbox), bbox)
-                label = '{} {:.2f} {} {}'.format("head", track.score, track.track_id, track.state)
-                # print("++++++++++++++++++++++++++++++++++++label:", label)
-                label_size = draw.textsize(label, font)
+                    iou_result = calc_iou(bbox1=person_boxs_ltbr, bbox2=track_box)  # 计算iou，做无效track框的过滤
+                    which_track = []
+                    for iou in iou_result:
+                        if iou.max() > track_iou:  # 如果最大iou>0.45，则认为是这个人
+                            which_track.append(iou.argmax())  # 保存tracker.tracks中该人的下标
+                    # 在tracker.tracks中移除不在which_track的元素
+                    for i in range(len(tracker.tracks)):
+                        if i in which_track:
+                            trackList.append(tracker.tracks[i])
+                    # tracker.tracks.clear()  # 清空tracks    # tracker.tracks不能清空，原因：会丢失当前person_id信息
 
-                left, top, right, bottom = bbox
-                top = max(0, np.floor(top + 0.5).astype('int32'))
-                left = max(0, np.floor(left + 0.5).astype('int32'))
-                bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
-                right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
-                print(label, (left, top), (right, bottom))
+                print("检测到 %d 人: %s" % (len(person_boxs), person_boxs))
+                print("追踪到 %d 人: %s" % (len(trackList), trackList))
+                log.logger.info("检测到 %d 人: %s" % (len(person_boxs), person_boxs))
+                log.logger.info("追踪到 %d 人: %s" % (len(trackList), trackList))
 
+                # 判定通行状态：0正常通过，1涉嫌逃票
+                flag, TrackContentList = evade_vote(trackList, other_classes, other_boxs, other_scores,
+                                                    frame.shape[0])  # frame.shape, (h, w, c)
 
-                ######################## 此处写入库逻辑 ####################
+                detect_time = time.time() - detect_t1  # 检测动作结束
 
+                # 标注
+                draw = ImageDraw.Draw(image)
 
-                if top - label_size[1] >= 0:
-                    text_origin = np.array([left, top - label_size[1]])
-                else:
-                    text_origin = np.array([left, top + 1])
+                for track in trackList:  # 标注人，track.state=0/1，都在tracker.tracks中
+                    bbox = track.to_tlbr()  # 左上右下
+                    label = '{} {:.2f} {} {}'.format("head", track.score, track.track_id, track.state)
+                    label_size = draw.textsize(label, font)
 
-                # My kingdom for a good redistributable image drawing library.
-                for i in range(thickness):
+                    left, top, right, bottom = bbox
+                    top = max(0, np.floor(top + 0.5).astype('int32'))
+                    left = max(0, np.floor(left + 0.5).astype('int32'))
+                    bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
+                    right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
+                    print(label, (left, top), (right, bottom))
+                    log.logger.info("%s, (%d, %d), (%d, %d)" % (label, left, top, right, bottom))
+
+                    if top - label_size[1] >= 0:
+                        text_origin = np.array([left, top - label_size[1]])
+                    else:
+                        text_origin = np.array([left, top + 1])
+
+                    # My kingdom for a good redistributable image drawing library.
+                    for i in range(thickness):
+                        draw.rectangle(
+                            [left + i, top + i, right - i, bottom - i],
+                            outline=colors[class_names.index(tracker_type)])
                     draw.rectangle(
-                        [left + i, top + i, right - i, bottom - i],
-                        outline=colors[class_names.index(tracker_type)])
-                draw.rectangle(
-                    [tuple(text_origin), tuple(text_origin + label_size)],
-                    fill=colors[class_names.index(tracker_type)])
-                draw.text(text_origin, label, fill=(0, 0, 0), font=font)
-            for (other_cls, other_box, other_score) in zip(other_classes, other_boxs, other_scores):  # 其他的识别，只标注类别和得分值
-                label = '{} {:.2f}'.format(other_cls, other_score)
-                # print("label:", label)
-                label_size = draw.textsize(label, font)
+                        [tuple(text_origin), tuple(text_origin + label_size)],
+                        fill=colors[class_names.index(tracker_type)])
+                    draw.text(text_origin, label, fill=(0, 0, 0), font=font)
+                for (other_cls, other_box, other_score) in zip(other_classes, other_boxs,
+                                                               other_scores):  # 其他的识别，只标注类别和得分值
+                    label = '{} {:.2f}'.format(other_cls, other_score)
+                    # print("label:", label)
+                    label_size = draw.textsize(label, font)
 
-                top, left, bottom, right = other_box
-                top = max(0, np.floor(top + 0.5).astype('int32'))
-                left = max(0, np.floor(left + 0.5).astype('int32'))
-                bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
-                right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
-                print(label, (left, top), (right, bottom))
+                    top, left, bottom, right = other_box
+                    top = max(0, np.floor(top + 0.5).astype('int32'))
+                    left = max(0, np.floor(left + 0.5).astype('int32'))
+                    bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
+                    right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
+                    print(label, (left, top), (right, bottom))
+                    log.logger.info("%s, (%d, %d), (%d, %d)" % (label, left, top, right, bottom))
 
-                if top - label_size[1] >= 0:
-                    text_origin = np.array([left, top - label_size[1]])
-                else:
-                    text_origin = np.array([left, top + 1])
+                    if top - label_size[1] >= 0:
+                        text_origin = np.array([left, top - label_size[1]])
+                    else:
+                        text_origin = np.array([left, top + 1])
 
-                # My kingdom for a good redistributable image drawing library.
-                for i in range(thickness):
+                    # My kingdom for a good redistributable image drawing library.
+                    for i in range(thickness):
+                        draw.rectangle(
+                            [left + i, top + i, right - i, bottom - i],
+                            outline=colors[class_names.index(other_cls)])
                     draw.rectangle(
-                        [left + i, top + i, right - i, bottom - i],
-                        outline=colors[class_names.index(other_cls)])
-                draw.rectangle(
-                    [tuple(text_origin), tuple(text_origin + label_size)],
-                    fill=colors[class_names.index(other_cls)])
-                draw.text(text_origin, label, fill=(0, 0, 0), font=font)
-            del draw
+                        [tuple(text_origin), tuple(text_origin + label_size)],
+                        fill=colors[class_names.index(other_cls)])
+                    draw.text(text_origin, label, fill=(0, 0, 0), font=font)
+                del draw
 
-            frame = np.asarray(image)  # 这时转成np.ndarray后是rgb模式
-            # bgr = rgb[..., ::-1]    # rgb转bgr
-            frame = frame[..., ::-1]
-            cv2.imshow('', frame)
-            cv2.waitKey(1)
+                result = np.asarray(image)  # 这时转成np.ndarray后是rgb模式，out.write(result)保存为视频用
+                # bgr = rgb[..., ::-1]    # rgb转bgr
+                result = result[..., ::-1]
 
-            print(time.time() - read_t1)
+                print(time.time() - read_t1)
+                log.logger.info("%f" % (time.time() - read_t1))
+
+                ################ 批量入库 ################
+                if len(TrackContentList) > 0:  # 只有有人，才进行入库，保存等操作
+                    curr_time = formatTimestamp(int(read_t1))  # 当前时间按读取时间算
+                    curr_time_path = formatTimestamp(int(read_t1), format='%Y%m%d_%H%M%S')
+                    if flag == "NORMAL":  # 正常情况
+                        savefile = os.path.join(normal_save_path, ip + "_" + curr_time_path + ".jpg")
+                        status = cv2.imwrite(filename=savefile, img=result)  # cv2.imwrite()保存文件，路径不能有2个及以上冒号
+
+                        print("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                        log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                    elif flag == "WARNING":  # 逃票情况
+                        savefile = os.path.join(evade_save_path, ip + "_" + curr_time_path + ".jpg")
+                        status = cv2.imwrite(filename=savefile, img=result)
+
+                        print("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                        log.logger.warn("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                    else:  # 没人的情况
+                        print("时间: %s, 状态: %s" % (curr_time_path, flag))
+                        log.logger.info("时间: %s, 状态: %s" % (curr_time_path, flag))
+                    saveManyDetails2DB(ip=ip,
+                                       curr_time=curr_time,
+                                       savefile=savefile,
+                                       read_time=read_time,
+                                       detect_time=detect_time,
+                                       predicted_class=tracker_type,
+                                       TrackContentList=TrackContentList)  # 批量入库
+                print("******************* end a image reco *******************")
+                log.logger.info("******************* end a image reco *******************")
+        except Exception as e:
+            log.logger.error(traceback.format_exc())
     cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
     frame_buffer = Stack(30 * 5)
     lock = threading.RLock()
-    t1 = threading.Thread(target=capture_thread, args=(0, frame_buffer, lock))
+    t1 = threading.Thread(target=capture_thread, args=(rtsp_url, frame_buffer, lock))
     t1.start()
     t2 = threading.Thread(target=detect_thread, args=(frame_buffer, lock))
     t2.start()

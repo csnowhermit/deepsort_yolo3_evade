@@ -43,7 +43,7 @@ if os.path.exists(evade_save_path) is False:
 
 # 通过状态的判断条件：图像的高*比例，在两比例之间，认定为涉嫌逃票
 up_distance_rate = 0.6
-down_distance_rate = 0.18
+down_distance_rate = 0.2
 
 
 # 日志文件

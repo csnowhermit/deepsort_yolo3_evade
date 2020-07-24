@@ -140,13 +140,14 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                     passwayPersonDict[which_gateList[i]] = tmp
                 else:
                     passwayPersonDict[which_gateList[i]] = [i]
-        print("passwayPersonDict:", passwayPersonDict)
+        print("passwayPersonDict:", passwayPersonDict)    # passwayPersonDict: {2: [0, 1]}
         log.logger.info("通道-人对应关系 passwayPersonDict: %s" % (passwayPersonDict))
 
-        for passPersonList in passwayPersonDict.keys():    # 逐个处理每一个通道的多人情况
-            suspicion_evade_boxes = []  # 逃票嫌疑list
-            for i in range(len(bboxes)):
-                suspicion_evade_boxes.append(bboxes[i])
+        for passway in passwayPersonDict.keys():    # 逐个处理每一个通道的多人情况
+            personList = passwayPersonDict[passway]    # 拿到该通道内的所有人在bboxes中的序列
+            suspicion_evade_boxes = []  # 同一通道里的所有人框
+            for person_index in personList:    # 逐个分别处理每个通道的情况，而不是所有通道一起处理
+                suspicion_evade_boxes.append(bboxes[person_index])
 
             ## 2.3、计算两两之间的距离，通过次距离判断是否属于逃票
             center = [[abs(left) + (abs(right)- abs(left)) / 2,
@@ -166,8 +167,8 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                     if distance >= down_distance_threshold and distance <= up_distance_threshold:  # 如果距离满足条件
                         suspicion1 = suspicion_evade_boxes[center.index(center[i])]  # 嫌疑人1
                         suspicion2 = suspicion_evade_boxes[center.index(center[j])]  # 嫌疑人2
-                        print(suspicion1, suspicion2, "涉嫌逃票")    # [0, 0, 1, 2] [1, 1, 2, 2] 涉嫌逃票
-                        log.logger.warn("%s %s 涉嫌逃票" % (suspicion1, suspicion2))
+                        print("通道 %s: %s %s 涉嫌逃票, distance: %f" % (passway, suspicion1, suspicion2, distance))    # [0, 0, 1, 2] [1, 1, 2, 2] 涉嫌逃票
+                        log.logger.warn("通道 %s: %s %s 涉嫌逃票, distance: %f" % (passway, suspicion1, suspicion2, distance))
                         index1 = bboxes.index(suspicion1)
                         index2 = bboxes.index(suspicion2)
                         print("这两人真实序号：", index1, index2)    # 这两人真实序号： 0 2
