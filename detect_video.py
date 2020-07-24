@@ -18,7 +18,7 @@ from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
-from common.config import tracker_type, normal_save_path, evade_save_path, ip, table_name, log, track_iou, image_size
+from common.config import tracker_type, normal_save_path, evade_save_path, ip, log, track_iou, image_size
 from common.evadeUtil import evade_vote, calc_iou
 from common.dateUtil import formatTimestamp
 from common.dbUtil import saveManyDetails2DB, getMaxPersonID
@@ -35,7 +35,7 @@ def main(yolo, input_path, output_path):
     encoder = gdet.create_box_encoder(model_filename, batch_size=1)
     
     metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
-    curr_person_id = getMaxPersonID(table_name)
+    curr_person_id = getMaxPersonID()
     tracker = Tracker(metric, n_start=curr_person_id)    # 用tracker来维护Tracks，每个track跟踪一个人
 
     class_names = yolo._get_class()

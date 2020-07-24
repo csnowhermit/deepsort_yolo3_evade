@@ -26,7 +26,8 @@ conn = pymysql.connect(host='127.0.0.1',
                        charset='utf8mb4')
 cursor = conn.cursor()
 
-table_name = "details_%s" % (ip.replace(".", "_"))    # 表名
+table_name = "details_%s" % (ip.replace(".", "_"))    # 表名：正常+逃票
+evade_table_name = "evade_details"    # 逃票表（所有摄像头都存一张表）
 
 # 需特殊处理的类别
 special_types = ['head', 'person']
