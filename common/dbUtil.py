@@ -89,22 +89,22 @@ def table_exists(table_name):
 def create_detail_info_table(table_name):
     sql = '''
         CREATE TABLE `%s`  (
-            `curr_time` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '当前时刻，精确到s',
-            `savefile` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '保存文件路径',
-            `pass_status` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '通过状态：0正常通过，1涉嫌逃票',
+            `curr_time` varchar(50) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '当前时刻，精确到s',
+            `savefile` varchar(255) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '保存文件路径',
+            `pass_status` varchar(2) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '通过状态：0正常通过，1涉嫌逃票',
             `read_time` float(10, 5) NULL DEFAULT NULL COMMENT '读取耗时',
             `detect_time` float(10, 5) NULL DEFAULT NULL COMMENT '检测耗时',
-            `predicted_class` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '检测类别',
+            `predicted_class` varchar(50) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '检测类别',
             `score` float(10, 5) NULL DEFAULT NULL COMMENT '得分值',
-            `box` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '人头框，左上右下',
+            `box` varchar(50) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '人头框，左上右下',
             `person_id` int(10) NULL DEFAULT NULL COMMENT '人物id',
             `trackState` int(2) NULL DEFAULT NULL COMMENT '确认状态：1未确认，2已确认',
-            `ip` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '摄像机ip',
-            `gate_num` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '闸机编号',
-            `gate_status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '闸机门状态',
-            `gate_light_status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '闸机灯状态',
-            `direction` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '方向：0出站，1进站'
-        ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+            `ip` varchar(255) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '摄像机ip',
+            `gate_num` varchar(2) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '闸机编号',
+            `gate_status` varchar(255) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '闸机门状态',
+            `gate_light_status` varchar(255) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '闸机灯状态',
+            `direction` varchar(2) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '方向：0出站，1进站'
+        ) ENGINE = InnoDB CHARACTER SET = utf8mb4 ROW_FORMAT = Dynamic;
     ''' % (table_name)
 
     ret = cursor.execute(sql)
@@ -119,23 +119,23 @@ def create_detail_evade_table(evade_table_name):
     sql = '''
         CREATE TABLE `%s`  (
             `uuid` int(50) NOT NULL AUTO_INCREMENT COMMENT '自增id',
-            `curr_time` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '当前时刻，精确到s',
-            `savefile` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '保存文件路径',
-            `pass_status` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '通过状态：0正常通过，1涉嫌逃票',
+            `curr_time` varchar(50) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '当前时刻，精确到s',
+            `savefile` varchar(255) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '保存文件路径',
+            `pass_status` varchar(2) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '通过状态：0正常通过，1涉嫌逃票',
             `read_time` float(10, 5) NULL DEFAULT NULL COMMENT '读取耗时',
             `detect_time` float(10, 5) NULL DEFAULT NULL COMMENT '检测耗时',
-            `predicted_class` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '检测类别',
+            `predicted_class` varchar(50) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '检测类别',
             `score` float(10, 5) NULL DEFAULT NULL COMMENT '得分值',
-            `box` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '人头框，左上右下',
+            `box` varchar(50) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '人头框，左上右下',
             `person_id` int(10) NULL DEFAULT NULL COMMENT '人物id',
             `trackState` int(2) NULL DEFAULT NULL COMMENT '确认状态：1未确认，2已确认',
-            `ip` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '摄像机ip',
-            `gate_num` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '闸机编号',
-            `gate_status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '闸机门状态',
-            `gate_light_status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '闸机灯状态',
-            `direction` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '方向：0出站，1进站', 
+            `ip` varchar(255) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '摄像机ip',
+            `gate_num` varchar(2) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '闸机编号',
+            `gate_status` varchar(255) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '闸机门状态',
+            `gate_light_status` varchar(255) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '闸机灯状态',
+            `direction` varchar(2) CHARACTER SET utf8mb4 NULL DEFAULT NULL COMMENT '方向：0出站，1进站', 
             PRIMARY KEY (`uuid`) USING BTREE
-        ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+        ) ENGINE = InnoDB CHARACTER SET = utf8mb4 ROW_FORMAT = Dynamic;
     ''' % (evade_table_name)
 
     ret = cursor.execute(sql)
