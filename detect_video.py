@@ -18,7 +18,7 @@ from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
-from common.config import tracker_type, normal_save_path, evade_save_path, ip, log, track_iou, image_size
+from common.config import tracker_type, normal_save_path, evade_save_path, ip, log, track_iou, image_size, evade_origin_save_path
 from common.evadeUtil import evade_vote, calc_iou
 from common.dateUtil import formatTimestamp
 from common.dbUtil import saveManyDetails2DB, getMaxPersonID
@@ -100,7 +100,7 @@ def main(yolo, input_path, output_path):
         # 原因：人走了，框还在
         # 解决办法：更新后的tracker.tracks与person_boxs再做一次iou，对于每个person_boxs，只保留与其最大iou的track
 
-        if len(person_boxs) > 0:
+        if len(person_boxs) > 0 and len(tracker.tracks) > 0:    # 确保追踪器有值，避免calc_iou出错
             person_boxs_ltbr = [[person[0],
                                  person[1],
                                  person[0] + person[2],
@@ -213,8 +213,14 @@ def main(yolo, input_path, output_path):
                 savefile = os.path.join(evade_save_path, ip + "_" + curr_time_path + ".jpg")
                 status = cv2.imwrite(filename=savefile, img=result)
 
-                print("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
-                log.logger.warn("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                # 只有检出逃票行为后，才将原始未标注的图片保存，便于以后更新模型
+                originfile = os.path.join(evade_origin_save_path, ip + "_" + curr_time_path + "-origin.jpg")
+                status2 = cv2.imwrite(filename=originfile, img=frame)
+
+                print("时间: %s, 状态: %s, 原始文件: %s, 保存状态: %s, 检后文件: %s, 保存状态: %s" % (
+                curr_time_path, flag, originfile, status2, savefile, status))
+                log.logger.warn("时间: %s, 状态: %s, 原始文件: %s, 保存状态: %s, 检后文件: %s, 保存状态: %s" % (
+                curr_time_path, flag, originfile, status2, savefile, status))
             else:    # 没人的情况
                 print("时间: %s, 状态: %s" % (curr_time_path, flag))
                 log.logger.info("时间: %s, 状态: %s" % (curr_time_path, flag))
