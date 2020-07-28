@@ -37,7 +37,11 @@ def capture_thread(input_webcam, frame_buffer, lock):
     if not vid.isOpened():
         raise IOError("Couldn't open webcam or video")
     while True:
-        return_value, frame = vid.read()
+        try:
+            return_value, frame = vid.read()
+        except Exception as e:
+            time.sleep(0.5)    # 读取失败后直接重连没有任何意义
+            vid = cv2.VideoCapture(input_webcam)
         if return_value is not True:
             break
         lock.acquire()
@@ -82,6 +86,8 @@ def detect_thread(frame_buffer, lock):
         try:
             if frame_buffer.size() > 0:
                 read_t1 = time.time()  # 读取动作开始
+                # print("=================== start a image reco %s ===================" % (formatTimestamp(int(time.time()))))
+                # log.logger.info("=================== start a image reco %s ===================" % (formatTimestamp(int(time.time()))))
                 lock.acquire()
                 frame = frame_buffer.pop()  # 每次拿最新的
                 lock.release()
@@ -242,8 +248,8 @@ def detect_thread(frame_buffer, lock):
                                        detect_time=detect_time,
                                        predicted_class=tracker_type,
                                        TrackContentList=TrackContentList)  # 批量入库
-                print("******************* end a image reco *******************")
-                log.logger.info("******************* end a image reco *******************")
+                print("******************* end a image reco %s *******************" % (formatTimestamp(int(time.time()))))
+                log.logger.info("******************* end a image reco %s *******************" % (formatTimestamp(int(time.time()))))
         except Exception as e:
             log.logger.error(traceback.format_exc())
     cv2.destroyAllWindows()
