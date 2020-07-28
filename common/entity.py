@@ -8,9 +8,10 @@ import os
     摄像头点位-物理位置点位对应关系
 '''
 class CapLocation:
-    def __init__(self, gate_num, direction, default_direct, entrance,
+    def __init__(self, ip, gate_num, direction, default_direct, entrance,
                  entrance_direct, entrance_gate_num, displacement,
                  passway_area, gate_area, gate_light_area):
+        self.ip = ip    # 哪个摄像头
         self.gate_num = gate_num    # 画面中闸机编号
         self.direction = direction    # 方向：0出站，1进站，2双向
         self.default_direct = default_direct    # 默认方向：针对2，跟谁在一起就视为谁的方向

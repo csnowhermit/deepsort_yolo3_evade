@@ -1,13 +1,12 @@
 import cv2
-from PIL import Image
 
-person_boxs = [2, 3, 4, 5]    # 左上宽高
+url = "rtsp://admin:quickhigh123456@192.168.120.155/Streaming/tracks/101?starttime=19700103T020150Z&endtime=19700103T020200Z"
 
-print(person_boxs[0],
-      person_boxs[1],
-      person_boxs[0] + person_boxs[2],
-      person_boxs[1] + person_boxs[3])
+rtsp_url = "rtsp://admin:quickhigh123456@192.168.120.155/h264/ch1/sub/av_stream"    # 用子码流读取
 
-person_boxs.__delitem__(2)
-print(person_boxs)
-
+cap = cv2.VideoCapture(url)
+print(cap.isOpened())
+while True:
+      ret, frame = cap.read()
+      cv2.imshow("", frame)
+      cv2.waitKey(1)

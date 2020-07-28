@@ -1,10 +1,10 @@
 import os
-from common.config import cursor, ip, log
+from common.config import cursor, log
 from common.entity import CapLocation
 
 
 '''
-    获取上下文参数
+    获取所有摄像头的上下文参数
     1.该ip下通道、闸机门、等有效对应位置
 '''
 
@@ -16,9 +16,8 @@ def getContextParam():
             select ip, gate_num, direction, default_direct, entrance,
                    entrance_direct, entrance_gate_num, displacement,
                    passway_area, gate_area, gate_light_area 
-            from cap_location where is_enabled='y' and ip='%s' 
-            order by gate_num asc
-    ''' %  (ip)
+            from cap_location where is_enabled='y'
+          '''
     cursor.execute(sql)
     results = cursor.fetchall()
 
