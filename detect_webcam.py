@@ -32,7 +32,9 @@ warnings.filterwarnings('ignore')
 def capture_thread(input_webcam, frame_buffer, lock):
     if input_webcam == "0":
         input_webcam = int(0)
-    print("capture_thread start")
+    print("capture_thread start: %s" % (input_webcam))
+    log.logger.info("capture_thread start: %s" % (input_webcam))
+
     vid = cv2.VideoCapture(input_webcam)
     if not vid.isOpened():
         raise IOError("Couldn't open webcam or video")
@@ -42,6 +44,7 @@ def capture_thread(input_webcam, frame_buffer, lock):
         except Exception as e:
             time.sleep(0.5)    # 读取失败后直接重连没有任何意义
             vid = cv2.VideoCapture(input_webcam)
+            log.logger.warn("已重连: %s" % (vid))
         if return_value is not True:
             break
         lock.acquire()
@@ -62,7 +65,7 @@ def detect_thread(frame_buffer, lock):
     encoder = gdet.create_box_encoder(model_filename, batch_size=1)
 
     metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
-    curr_person_id = getMaxPersonID()
+    curr_person_id = getMaxPersonID(table_name)
     tracker = Tracker(metric, n_start=curr_person_id)  # 用tracker来维护Tracks，每个track跟踪一个人
 
     class_names = yolo._get_class()
