@@ -1,7 +1,7 @@
 import re
 import json
 import traceback
-from common.config import *
+from common.config import conn, cursor, log, evade_table_name
 
 '''
     数据库操作工具
@@ -19,6 +19,7 @@ from common.config import *
     :return 
 '''
 def saveManyDetails2DB(ip, curr_time, savefile, read_time, detect_time, predicted_class, TrackContentList):
+    table_name = "details_%s" % (ip.replace(".", "_"))    # 表名：正常+逃票
     if table_exists(table_name) is False:
         create_detail_info_table(table_name)
     if table_exists(evade_table_name) is False:
@@ -145,7 +146,7 @@ def create_detail_evade_table(evade_table_name):
 '''
     获取当前最大person_id
 '''
-def getMaxPersonID():
+def getMaxPersonID(table_name):
     if table_exists(table_name) is False:
         create_detail_info_table(table_name)
 
