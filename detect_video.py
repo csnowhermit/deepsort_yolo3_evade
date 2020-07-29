@@ -69,8 +69,9 @@ def main(yolo, input_path, output_path):
 
     while True:
         read_t1 = time.time()    # 读取动作开始
-        print("=================== start a image reco ===================")
-        log.logger.info("=================== start a image reco ===================")
+        print("=================== start a image reco %s ===================" % (formatTimestamp(int(time.time()))))
+        log.logger.info("=================== start a image reco %s ===================" % (formatTimestamp(int(time.time()))))
+
         ret, frame = video_capture.read()  # frame shape (h, w, c) (1080, 1920, 3)
         if ret != True:
             log.logger.error("video_capture.read(): %s" % ret)
@@ -203,18 +204,32 @@ def main(yolo, input_path, output_path):
         if len(TrackContentList) > 0:    # 只有有人，才进行入库，保存等操作
             curr_time = formatTimestamp(int(read_t1))    # 当前时间按读取时间算
             curr_time_path = formatTimestamp(int(read_t1), format='%Y%m%d_%H%M%S')
+            curr_date = formatTimestamp(int(read_t1), format='%Y%m%d')
+
+            normal_time_path = normal_save_path + curr_date + "/"   # 正常图片，按天分目录
+            evade_time_path = evade_save_path + curr_date + "/"    # 逃票图片，标注后
+            evade_origin_time_path = evade_origin_save_path + curr_date + "/"    # 逃票原始图片
+
+            # 分别创建目录
+            if os.path.exists(normal_time_path) is False:
+                os.makedirs(normal_time_path)
+            if os.path.exists(evade_time_path) is False:
+                os.makedirs(evade_time_path)
+            if os.path.exists(evade_origin_time_path) is False:
+                os.makedirs(evade_origin_time_path)
+
             if flag == "NORMAL":    # 正常情况
-                savefile = os.path.join(normal_save_path, ip + "_" + curr_time_path + ".jpg")
+                savefile = os.path.join(normal_time_path, ip + "_" + curr_time_path + ".jpg")
                 status = cv2.imwrite(filename=savefile, img=result)    # cv2.imwrite()保存文件，路径不能有2个及以上冒号
 
                 print("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
                 log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
             elif flag == "WARNING":    # 逃票情况
-                savefile = os.path.join(evade_save_path, ip + "_" + curr_time_path + ".jpg")
+                savefile = os.path.join(evade_time_path, ip + "_" + curr_time_path + ".jpg")
                 status = cv2.imwrite(filename=savefile, img=result)
 
                 # 只有检出逃票行为后，才将原始未标注的图片保存，便于以后更新模型
-                originfile = os.path.join(evade_origin_save_path, ip + "_" + curr_time_path + "-origin.jpg")
+                originfile = os.path.join(evade_origin_time_path, ip + "_" + curr_time_path + "-origin.jpg")
                 status2 = cv2.imwrite(filename=originfile, img=frame)
 
                 print("时间: %s, 状态: %s, 原始文件: %s, 保存状态: %s, 检后文件: %s, 保存状态: %s" % (
@@ -231,8 +246,8 @@ def main(yolo, input_path, output_path):
                                detect_time=detect_time,
                                predicted_class=tracker_type,
                                TrackContentList=TrackContentList)    # 批量入库
-        print("******************* end a image reco *******************")
-        log.logger.info("******************* end a image reco *******************")
+        print("******************* end a image reco %s *******************" % (formatTimestamp(int(time.time()))))
+        log.logger.info("******************* end a image reco %s *******************" % (formatTimestamp(int(time.time()))))
         if isOutput:    # 识别后的视频保存
             out.write(result)
     yolo.close_session()
@@ -254,6 +269,7 @@ if __name__ == '__main__':
         try:
             main(YOLO(), FLAGS.input, FLAGS.output)
         except Exception as e:
+            print(traceback.format_exc())
             log.logger.error(traceback.format_exc())
     else:
         print("Must specify at least video_input_path.  See usage with --help.")
