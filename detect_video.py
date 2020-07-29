@@ -69,8 +69,8 @@ def main(yolo, input_path, output_path):
 
     while True:
         read_t1 = time.time()    # 读取动作开始
-        print("=================== start a image reco %s ===================" % (formatTimestamp(int(time.time()))))
-        log.logger.info("=================== start a image reco %s ===================" % (formatTimestamp(int(time.time()))))
+        print("=================== start a image reco %s ===================" % (formatTimestamp(time.time(), ms=True)))
+        log.logger.info("=================== start a image reco %s ===================" % (formatTimestamp(time.time(), ms=True)))
 
         ret, frame = video_capture.read()  # frame shape (h, w, c) (1080, 1920, 3)
         if ret != True:
@@ -202,9 +202,9 @@ def main(yolo, input_path, output_path):
 
         ################ 批量入库 ################
         if len(TrackContentList) > 0:    # 只有有人，才进行入库，保存等操作
-            curr_time = formatTimestamp(int(read_t1))    # 当前时间按读取时间算
-            curr_time_path = formatTimestamp(int(read_t1), format='%Y%m%d_%H%M%S')
-            curr_date = formatTimestamp(int(read_t1), format='%Y%m%d')
+            curr_time = formatTimestamp(read_t1, ms=True)    # 当前时间按读取时间算，精确到毫秒
+            curr_time_path = formatTimestamp(read_t1, format='%Y%m%d_%H%M%S', ms=True)
+            curr_date = formatTimestamp(read_t1, format='%Y%m%d')
 
             normal_time_path = normal_save_path + curr_date + "/"   # 正常图片，按天分目录
             evade_time_path = evade_save_path + curr_date + "/"    # 逃票图片，标注后
@@ -246,8 +246,8 @@ def main(yolo, input_path, output_path):
                                detect_time=detect_time,
                                predicted_class=tracker_type,
                                TrackContentList=TrackContentList)    # 批量入库
-        print("******************* end a image reco %s *******************" % (formatTimestamp(int(time.time()))))
-        log.logger.info("******************* end a image reco %s *******************" % (formatTimestamp(int(time.time()))))
+        print("******************* end a image reco %s *******************" % (formatTimestamp(time.time(), ms=True)))
+        log.logger.info("******************* end a image reco %s *******************" % (formatTimestamp(time.time(), ms=True)))
         if isOutput:    # 识别后的视频保存
             out.write(result)
     yolo.close_session()

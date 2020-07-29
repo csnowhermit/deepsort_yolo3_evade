@@ -97,8 +97,8 @@ def detect_thread(frame_buffer, lock):
                 frame = frame_buffer.pop()  # 每次拿最新的
                 lock.release()
 
-                print("=================== start a image reco %s ===================" % (formatTimestamp(int(time.time()))))
-                log.logger.info("=================== start a image reco %s ===================" % (formatTimestamp(int(time.time()))))
+                print("=================== start a image reco %s ===================" % (formatTimestamp(time.time(), ms=True)))
+                log.logger.info("=================== start a image reco %s ===================" % (formatTimestamp(time.time(), ms=True)))
 
                 read_time = time.time() - read_t1  # 读取动作结束
                 detect_t1 = time.time()  # 检测动作开始
@@ -228,9 +228,9 @@ def detect_thread(frame_buffer, lock):
 
                 ################ 批量入库 ################
                 if len(TrackContentList) > 0:  # 只有有人，才进行入库，保存等操作
-                    curr_time = formatTimestamp(int(read_t1))  # 当前时间按读取时间算
-                    curr_time_path = formatTimestamp(int(read_t1), format='%Y%m%d_%H%M%S')
-                    curr_date = formatTimestamp(int(read_t1), format='%Y%m%d')
+                    curr_time = formatTimestamp(read_t1, ms=True)    # 当前时间按读取时间算，精确到毫秒
+                    curr_time_path = formatTimestamp(read_t1, format='%Y%m%d_%H%M%S', ms=True)
+                    curr_date = formatTimestamp(read_t1, format='%Y%m%d')
 
                     normal_time_path = normal_save_path + curr_date + "/"  # 正常图片，按天分目录
                     evade_time_path = evade_save_path + curr_date + "/"  # 逃票图片，标注后
@@ -272,8 +272,8 @@ def detect_thread(frame_buffer, lock):
                                        detect_time=detect_time,
                                        predicted_class=tracker_type,
                                        TrackContentList=TrackContentList)  # 批量入库
-                print("******************* end a image reco %s *******************" % (formatTimestamp(int(time.time()))))
-                log.logger.info("******************* end a image reco %s *******************" % (formatTimestamp(int(time.time()))))
+                print("******************* end a image reco %s *******************" % (formatTimestamp(time.time(), ms=True)))
+                log.logger.info("******************* end a image reco %s *******************" % (formatTimestamp(time.time(), ms=True)))
         except Exception as e:
             log.logger.error(traceback.format_exc())
     cv2.destroyAllWindows()
