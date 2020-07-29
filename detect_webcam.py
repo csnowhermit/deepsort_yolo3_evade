@@ -44,7 +44,11 @@ def capture_thread(input_webcam, frame_buffer, lock):
         except Exception as e:
             time.sleep(0.5)    # 读取失败后直接重连没有任何意义
             vid = cv2.VideoCapture(input_webcam)
-            log.logger.warn("已重连: %s" % (vid))
+            log.logger.error("Exception 已重连: %s" % (vid))
+        except OSError as e:
+            time.sleep(0.5)  # 读取失败后直接重连没有任何意义
+            vid = cv2.VideoCapture(input_webcam)
+            log.logger.error("OSError 已重连: %s" % (vid))
         if return_value is not True:
             break
         lock.acquire()
