@@ -16,8 +16,15 @@ def formatTimestamp2ms(timestamp, format="%Y-%m-%d_%H:%M:%S"):
     formatted_time_stamp = "%s.%03d" % (data_head, data_secs)
     return formatted_time_stamp
 
-for i in range(100):
-    read_t1 = time.time()
-    n = 1000 * read_t1
-    print(formatTimestamp2ms(time.time()))
-    time.sleep(random.uniform(0, 0.1))
+# for i in range(100):
+#     read_t1 = time.time()
+#     n = 1000 * read_t1
+#     print(formatTimestamp2ms(time.time()))
+#     time.sleep(random.uniform(0, 0.1))
+
+
+img_cached = [3,3,3,3,3,5,5,5,5,7,3,2,4,0]
+
+num = 6
+tmp = img_cached[num-3:num+3]
+print(tmp)
