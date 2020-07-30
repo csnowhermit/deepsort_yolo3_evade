@@ -294,7 +294,7 @@ def detect_thread(frame_buffer, lock):
 
 
 if __name__ == '__main__':
-    frame_buffer = Stack(1 * 5)
+    frame_buffer = Stack(30 * 5)
     lock = threading.RLock()
     t1 = threading.Thread(target=capture_thread, args=(rtsp_url, frame_buffer, lock))
     t1.start()
