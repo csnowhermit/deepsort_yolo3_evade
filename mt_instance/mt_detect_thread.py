@@ -41,7 +41,7 @@ def detect_thread(frame_buffer, lock):
 
     metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
     # curr_person_id = getMaxPersonID()
-    curr_person_id = int(time.time())    # 直接拿时间戳当当前person_id
+    curr_person_id = int(time.time() * 1000)    # 直接拿毫秒级时间戳当当前person_id
     tracker = Tracker(metric, n_start=curr_person_id)  # 用tracker来维护Tracks，每个track跟踪一个人
 
     class_names = yolo._get_class()
