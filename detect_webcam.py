@@ -35,9 +35,21 @@ def capture_thread(input_webcam, frame_buffer, lock):
     print("capture_thread start: %s" % (input_webcam))
     log.logger.info("capture_thread start: %s" % (input_webcam))
 
-    vid = cv2.VideoCapture(input_webcam)
-    if not vid.isOpened():
-        raise IOError("Couldn't open webcam or video")
+    # vid = cv2.VideoCapture(input_webcam)
+    # if not vid.isOpened():
+    #     raise IOError("Couldn't open webcam or video")
+
+    # 循环，直到打开连接之后
+    while True:
+        vid = cv2.VideoCapture(input_webcam)
+        if vid.isOpened() is False:
+            time.sleep(0.5)  # 读取失败后直接重连没有任何意义
+            vid = cv2.VideoCapture(input_webcam)
+            print("Couldn't open webcam or video, 已重连: %s" % (vid))
+            log.logger.error("Couldn't open webcam or video, 已重连: %s" % (vid))
+        if vid.isOpened():
+            break
+
     while True:
         try:
             return_value, frame = vid.read()
@@ -50,7 +62,9 @@ def capture_thread(input_webcam, frame_buffer, lock):
             vid = cv2.VideoCapture(input_webcam)
             log.logger.error("OSError: %s, \n 已重连: %s" % (traceback.format_exc(), vid))
         if return_value is not True:
-            break
+            time.sleep(0.5)  # 读取失败后直接重连没有任何意义
+            vid = cv2.VideoCapture(input_webcam)
+            log.logger.error("读取失败, 已重连: %s" % (vid))
         lock.acquire()
         frame_buffer.push(frame)
         lock.release()
@@ -69,7 +83,7 @@ def detect_thread(frame_buffer, lock):
     encoder = gdet.create_box_encoder(model_filename, batch_size=1)
 
     metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
-    curr_person_id = getMaxPersonID(table_name)
+    curr_person_id = getMaxPersonID()
     tracker = Tracker(metric, n_start=curr_person_id)  # 用tracker来维护Tracks，每个track跟踪一个人
 
     class_names = yolo._get_class()
@@ -280,7 +294,7 @@ def detect_thread(frame_buffer, lock):
 
 
 if __name__ == '__main__':
-    frame_buffer = Stack(30 * 5)
+    frame_buffer = Stack(1 * 5)
     lock = threading.RLock()
     t1 = threading.Thread(target=capture_thread, args=(rtsp_url, frame_buffer, lock))
     t1.start()

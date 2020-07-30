@@ -1,7 +1,7 @@
 import re
 import json
 import traceback
-from common.config import conn, cursor, log, evade_table_name
+from common.config import conn, cursor, log, table_name, evade_table_name
 
 '''
     数据库操作工具
@@ -146,7 +146,7 @@ def create_detail_evade_table(evade_table_name):
 '''
     获取当前最大person_id
 '''
-def getMaxPersonID(table_name):
+def getMaxPersonID():
     if table_exists(table_name) is False:
         create_detail_info_table(table_name)
 
