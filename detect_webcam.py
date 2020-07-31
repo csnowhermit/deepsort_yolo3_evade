@@ -307,7 +307,7 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                         start = max(0, index - imgNearSize)
                         end = min(len(imgCacheList), index + imgNearSize)
                         tmp = imgCacheList[start: end]
-
+                        lock.release()
 
                         video_FourCC = 875967080
                         video_fps = 25
@@ -321,7 +321,7 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
 
                         print("视频保存完成: %s" % (video_file))
                         log.logger.info("视频保存完成: %s" % (video_file))
-                        lock.release()
+
                     else:  # 没人的情况
                         print("时间: %s, 状态: %s" % (curr_time_path, flag))
                         log.logger.info("时间: %s, 状态: %s" % (curr_time_path, flag))
