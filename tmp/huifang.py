@@ -61,6 +61,7 @@ def consumer_thread(frame_buffer, img_cached, lock):
                 print(output_path, len(tmp), len(img_cached))
 
                 out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
+                # out = cv2.VideoWriter(output_path)
                 for t in tmp:
                     print("t:", t.shape)
                     out.write(t)

@@ -8,6 +8,7 @@ from timeit import time
 import warnings
 import cv2
 import traceback
+import hashlib
 import numpy as np
 from yolo import YOLO
 
@@ -17,7 +18,7 @@ from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
-from common.config import tracker_type, normal_save_path, evade_save_path, ip, table_name, log, track_iou, image_size, rtsp_url, evade_origin_save_path
+from common.config import tracker_type, normal_save_path, evade_save_path, ip, log, track_iou, image_size, rtsp_url, evade_origin_save_path, imgCacheSize, imgNearSize, evade_video_path
 from common.evadeUtil import evade_vote, calc_iou
 from common.dateUtil import formatTimestamp
 from common.dbUtil import saveManyDetails2DB, getMaxPersonID
@@ -29,7 +30,7 @@ warnings.filterwarnings('ignore')
 '''
     视频流读取线程：读取到自定义缓冲区
 '''
-def capture_thread(input_webcam, frame_buffer, lock):
+def capture_thread(input_webcam, frame_buffer, lock, imgCacheList, md5List):
     if input_webcam == "0":
         input_webcam = int(0)
     print("capture_thread start: %s" % (input_webcam))
@@ -48,6 +49,8 @@ def capture_thread(input_webcam, frame_buffer, lock):
             print("Couldn't open webcam or video, 已重连: %s" % (vid))
             log.logger.error("Couldn't open webcam or video, 已重连: %s" % (vid))
         if vid.isOpened():
+            print("vid.isOpened() is True: %s" % (vid))
+            log.logger.info("vid.isOpened() is True: %s" % (vid))
             break
 
     while True:
@@ -69,12 +72,20 @@ def capture_thread(input_webcam, frame_buffer, lock):
             print("读取失败, 已重连: %s" % (vid))
             log.logger.error("读取失败, 已重连: %s" % (vid))
         lock.acquire()
-        frame_buffer.push(frame)
+        frame_buffer.push(frame)    # 用于跳帧识别的缓存
+
+        imgCacheList.append(frame)    # 用来生成截取视频的缓存
+        md5List.append(hashlib.md5(frame).hexdigest())    # 图片的签名值
+        if len(imgCacheList) > imgCacheSize:    # 如果超长，则删除最前面的
+            imgCacheList.remove(imgCacheList[0])
+        if len(md5List) > imgNearSize:
+            md5List.remove(md5List[0])
+
         lock.release()
         cv2.waitKey(25)    # delay 25ms
 
 
-def detect_thread(frame_buffer, lock):
+def detect_thread(frame_buffer, lock, imgCacheList, md5List):
     yolo = YOLO()
 
     # Definition of the parameters
@@ -252,6 +263,7 @@ def detect_thread(frame_buffer, lock):
                     normal_time_path = normal_save_path + curr_date + "/"  # 正常图片，按天分目录
                     evade_time_path = evade_save_path + curr_date + "/"  # 逃票图片，标注后
                     evade_origin_time_path = evade_origin_save_path + curr_date + "/"  # 逃票原始图片
+                    evade_video_time_path = evade_video_path + curr_date + "/"    # 逃票图片的上下文视频
 
                     # 分别创建目录
                     if os.path.exists(normal_time_path) is False:
@@ -260,6 +272,8 @@ def detect_thread(frame_buffer, lock):
                         os.makedirs(evade_time_path)
                     if os.path.exists(evade_origin_time_path) is False:
                         os.makedirs(evade_origin_time_path)
+                    if os.path.exists(evade_video_time_path) is False:
+                        os.makedirs(evade_video_time_path)
 
                     if flag == "NORMAL":  # 正常情况
                         savefile = os.path.join(normal_time_path, ip + "_" + curr_time_path + ".jpg")
@@ -279,6 +293,35 @@ def detect_thread(frame_buffer, lock):
                             curr_time_path, flag, originfile, status2, savefile, status))
                         log.logger.warn("时间: %s, 状态: %s, 原始文件: %s, 保存状态: %s, 检后文件: %s, 保存状态: %s" % (
                             curr_time_path, flag, originfile, status2, savefile, status))
+
+                        # 开始拼接视频
+                        lock.acquire()
+                        try:
+                            # index = imgCacheList.index(frame)    # 找到当前图片的所属下标
+                            sign = hashlib.md5(frame).hexdigest()
+                            index = md5List.index(sign)    # 用md5值匹配找图
+                        except ValueError as e:
+                            print("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
+                            log.logger.error("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
+
+                        start = max(0, index - imgNearSize)
+                        end = min(len(imgCacheList), index + imgNearSize)
+                        tmp = imgCacheList[start: end]
+
+
+                        video_FourCC = 875967080
+                        video_fps = 25
+                        video_size = (frame.shape[1], frame.shape[0])
+                        video_file = os.path.join(evade_video_time_path, ip + "_" + curr_time_path + ".mp4")
+
+                        out = cv2.VideoWriter(video_file, video_FourCC, video_fps, video_size)
+                        for t in tmp:
+                            out.write(t)
+                        out.release()
+
+                        print("视频保存完成: %s" % (video_file))
+                        log.logger.info("视频保存完成: %s" % (video_file))
+                        lock.release()
                     else:  # 没人的情况
                         print("时间: %s, 状态: %s" % (curr_time_path, flag))
                         log.logger.info("时间: %s, 状态: %s" % (curr_time_path, flag))
@@ -299,7 +342,11 @@ def detect_thread(frame_buffer, lock):
 if __name__ == '__main__':
     frame_buffer = Stack(30 * 5)
     lock = threading.RLock()
-    t1 = threading.Thread(target=capture_thread, args=(rtsp_url, frame_buffer, lock))
+
+    imgCacheList = []    # 原图缓存队列，用做视频拼接
+    md5List = []    # 原图缓存队列中每帧的md5值
+    input_path = "E:/BaiduNetdiskDownload/2020-04-14/10.6.8.181_01_20200414185039477.mp4"
+    t1 = threading.Thread(target=capture_thread, args=(input_path, frame_buffer, lock, imgCacheList, md5List))
     t1.start()
-    t2 = threading.Thread(target=detect_thread, args=(frame_buffer, lock))
+    t2 = threading.Thread(target=detect_thread, args=(frame_buffer, lock, imgCacheList, md5List))
     t2.start()

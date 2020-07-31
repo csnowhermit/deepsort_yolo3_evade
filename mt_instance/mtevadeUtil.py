@@ -153,8 +153,9 @@ def evade_vote(ip, tracks, other_classes, other_boxs, other_scores, height):
                 for j in range(i + 1, len(center)):
                     person1x, person1y = center[i][0], center[i][1]
                     person2x, person2y = center[j][0], center[j][1]
-                    distance = math.sqrt(((person1x - person2x) ** 2) +
-                                         ((person1y - person2y) ** 2))
+                    # distance = math.sqrt(((person1x - person2x) ** 2) +
+                    #                      ((person1y - person2y) ** 2))
+                    distance = abs(person1y - person2y)  # 只算y方向上的，取绝对值
 
                     print("person1: %s, person2: %s, distance: %f" % (center[i], center[j], distance))
                     log.logger.info("person1: %s, person2: %s, distance: %f" % (center[i], center[j], distance))

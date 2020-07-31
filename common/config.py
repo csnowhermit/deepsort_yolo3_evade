@@ -37,6 +37,7 @@ tracker_type = 'head'    # 需要tracker的类别
 normal_save_path = "D:/monitor_images/" + ip + "/normal_images/"
 evade_save_path = "D:/monitor_images/" + ip + "/evade_images/"
 evade_origin_save_path= "D:/monitor_images/" + ip + "/evade_origin_images/"    # 保存检出逃票的原图
+evade_video_path = "D:/monitor_images/" + ip + "/evade_video/"    # 逃票图片的前后视频
 
 if os.path.exists(normal_save_path) is False:
     os.makedirs(normal_save_path)
@@ -44,6 +45,12 @@ if os.path.exists(evade_save_path) is False:
     os.makedirs(evade_save_path)
 if os.path.exists(evade_origin_save_path) is False:
     os.makedirs(evade_origin_save_path)
+if os.path.exists(evade_video_path) is False:
+    os.makedirs(evade_video_path)
+
+# 视频原图数据帧list大小
+imgCacheSize = 30 * 60 * 1    # 默认存2分钟的图片
+imgNearSize = 30 * 5    # 用前后n秒的图片合成视频
 
 # 通过状态的判断条件：图像的高*比例，在两比例之间，认定为涉嫌逃票
 up_distance_rate = 0.6
