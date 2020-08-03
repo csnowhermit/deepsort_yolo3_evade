@@ -74,12 +74,22 @@ def capture_thread(input_webcam, frame_buffer, lock, imgCacheList, md5List):
         lock.acquire()
         frame_buffer.push(frame)    # 用于跳帧识别的缓存
 
-        imgCacheList.append(frame)    # 用来生成截取视频的缓存
-        md5List.append(hashlib.md5(frame).hexdigest())    # 图片的签名值
-        if len(imgCacheList) > imgCacheSize:    # 如果超长，则删除最前面的
-            imgCacheList.remove(imgCacheList[0])
-        if len(md5List) > imgNearSize:
-            md5List.remove(md5List[0])
+        try:
+            imgCacheList.append(frame)  # 用来生成截取视频的缓存
+            sign = hashlib.md5(frame).hexdigest()
+            md5List.append(sign)  # 图片的签名值
+            if len(imgCacheList) > imgCacheSize:  # 如果超长，则删除最前面的
+                imgCacheList.remove(imgCacheList[0])
+            if len(md5List) > imgNearSize:
+                md5List.remove(md5List[0])
+        except TypeError as e:
+            print("视频序列准备失败: %s" % (traceback.format_exc()))
+            log.logger.error("视频序列准备失败: %s" % (traceback.format_exc()))
+            pass
+        except Exception as e:
+            print("视频序列准备失败: %s" % (traceback.format_exc()))
+            log.logger.error("视频序列准备失败: %s" % (traceback.format_exc()))
+            pass
 
         lock.release()
         cv2.waitKey(25)    # delay 25ms
@@ -300,27 +310,27 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                             # index = imgCacheList.index(frame)    # 找到当前图片的所属下标
                             sign = hashlib.md5(frame).hexdigest()
                             index = md5List.index(sign)    # 用md5值匹配找图
+
+                            start = max(0, index - imgNearSize)
+                            end = min(len(imgCacheList), index + imgNearSize)
+                            tmp = imgCacheList[start: end]
+                            lock.release()
+
+                            video_FourCC = 875967080
+                            video_fps = 25
+                            video_size = (frame.shape[1], frame.shape[0])
+                            video_file = os.path.join(evade_video_time_path, ip + "_" + curr_time_path + ".mp4")
+
+                            out = cv2.VideoWriter(video_file, video_FourCC, video_fps, video_size)
+                            for t in tmp:
+                                out.write(t)
+                            out.release()
+
+                            print("视频保存完成: %s" % (video_file))
+                            log.logger.info("视频保存完成: %s" % (video_file))
                         except ValueError as e:
                             print("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
                             log.logger.error("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
-
-                        start = max(0, index - imgNearSize)
-                        end = min(len(imgCacheList), index + imgNearSize)
-                        tmp = imgCacheList[start: end]
-                        lock.release()
-
-                        video_FourCC = 875967080
-                        video_fps = 25
-                        video_size = (frame.shape[1], frame.shape[0])
-                        video_file = os.path.join(evade_video_time_path, ip + "_" + curr_time_path + ".mp4")
-
-                        out = cv2.VideoWriter(video_file, video_FourCC, video_fps, video_size)
-                        for t in tmp:
-                            out.write(t)
-                        out.release()
-
-                        print("视频保存完成: %s" % (video_file))
-                        log.logger.info("视频保存完成: %s" % (video_file))
 
                     else:  # 没人的情况
                         print("时间: %s, 状态: %s" % (curr_time_path, flag))
