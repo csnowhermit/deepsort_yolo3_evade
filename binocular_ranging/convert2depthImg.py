@@ -1,6 +1,6 @@
 import numpy as np
 import cv2
-import ceju01.camera_configs as camera_configs
+import binocular_ranging.camera_configs as camera_configs
 
 '''
     转换成深度图

@@ -4,3 +4,10 @@ head
 greenLight
 yellowLight
 redLight
+child
+backpack
+cell phone
+umbrella
+handbag
+pushcart
+trunk
