@@ -30,7 +30,7 @@ table_name = "details_%s" % (ip.replace(".", "_"))    # 表名：正常+逃票
 evade_table_name = "evade_details"    # 逃票表（所有摄像头都存一张表）
 
 # 需特殊处理的类别
-special_types = ['head', 'person']
+special_types = ['head', 'person', 'child']
 tracker_type = 'head'    # 需要tracker的类别
 
 # 保存路径
@@ -65,3 +65,6 @@ log = Logger(logfile, level='info')
 
 # 检出框与tracker框的iou，解决人走了框还在的情况
 track_iou = 0.45
+
+# 小孩识别成大人，做nms的iou阀值
+person_nms_iou = 0.6

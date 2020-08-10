@@ -12,6 +12,7 @@ import hashlib
 import numpy as np
 from yolo import YOLO
 
+from deep_sort import preprocessing
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
@@ -101,6 +102,7 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
     # Definition of the parameters
     max_cosine_distance = 0.3
     nn_budget = None
+    nms_max_overlap = 1.0
 
     # Deep SORT
     model_filename = 'model_data/mars-small128.pb'
@@ -143,17 +145,25 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
 
                 # image = Image.fromarray(frame)
                 image = Image.fromarray(frame[..., ::-1])  # bgr to rgb
+                # person_classes，既包括大人，也包括小孩，这时拿到的人物信息已经过nms
                 (person_classes, person_boxs, person_scores), \
                 (other_classes, other_boxs, other_scores) = yolo.detect_image(image)  # person_boxs格式：左上宽高
                 # print("person:", person_boxs, person_scores)    # 返回的结果均为[x, y, w, h]
                 # print("other:", other_classes, other_boxs, other_scores)
 
-                features = encoder(frame, person_boxs)
+                features = encoder(frame, person_boxs)    # 每个人做成128维的向量
+                # print("features:", type(features), features.shape)    # <class 'numpy.ndarray'> (n, 128)
 
+                # 这时detection里已没有了类别：即区分不出大人/小孩
                 detections = [Detection(bbox, confidence, feature) for bbox, confidence, feature in
                               zip(person_boxs, person_scores, features)]
 
                 # 原来有nms，现去掉，原因：yolo.detect_image()本身已经做了nms
+                # 这里不区分大人/小孩，再统一做一次nms，消除 小孩识别成大人 的情况
+                boxes = np.array([d.tlwh for d in detections])
+                scores = np.array([d.confidence for d in detections])
+                indices = preprocessing.non_max_suppression(boxes, nms_max_overlap, scores)
+                detections = [detections[i] for i in indices]
 
                 # Call the tracker
                 tracker.predict()
@@ -355,7 +365,8 @@ if __name__ == '__main__':
 
     imgCacheList = []    # 原图缓存队列，用做视频拼接
     md5List = []    # 原图缓存队列中每帧的md5值
-    input_path = "E:/BaiduNetdiskDownload/2020-04-14/10.6.8.181_01_20200414185039477.mp4"
+    # input_path = "E:/BaiduNetdiskDownload/2020-04-14/10.6.8.181_01_20200414185039477.mp4"
+    input_path = 0
     t1 = threading.Thread(target=capture_thread, args=(input_path, frame_buffer, lock, imgCacheList, md5List))
     t1.start()
     t2 = threading.Thread(target=detect_thread, args=(frame_buffer, lock, imgCacheList, md5List))

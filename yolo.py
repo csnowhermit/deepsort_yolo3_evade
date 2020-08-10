@@ -15,11 +15,12 @@ from yolo3.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
 from common.config import special_types, log
+from common.person_nms import calc_person_nms
 
 class YOLO(object):
     _defaults = {
         # "model_path": 'model_data/trained_weights_final-20200709-all-epoch=50.h5',
-        "model_path": 'model_data/trained_weights_final - 20200805 - all - epoch = 100 - 200.h5',
+        "model_path": 'model_data/trained_weights_final-20200807-all-epoch=100-200.h5',
         # "model_path": 'model_data/yolo_weights.h5',
         "anchors_path": 'model_data/yolo_anchors.txt',
         "classes_path": 'model_data/evade_classes.txt',
@@ -31,7 +32,7 @@ class YOLO(object):
 
     # # 多路摄像头同时接一个识别实例用这组参数
     # _defaults = {
-    #     "model_path": '../model_data/trained_weights_final-20200709-all-epoch=50.h5',
+    #     "model_path": '../model_data/trained_weights_final-20200807-all-epoch=100-200.h5',
     #     # "model_path": 'model_data/yolo_weights.h5',
     #     "anchors_path": '../model_data/yolo_anchors.txt',
     #     "classes_path": '../model_data/evade_classes.txt',
@@ -144,6 +145,7 @@ class YOLO(object):
         other_boxs = []
         other_scores = []
 
+        # 1.区分人和其他物体
         for i, c in reversed(list(enumerate(out_classes))):
             predicted_class = self.class_names[c]
 
@@ -152,25 +154,19 @@ class YOLO(object):
             print("原始检出：%s %s %s" % (predicted_class, box, score))
             log.logger.info("原始检出：%s %s %s" % (predicted_class, box, score))
 
-            x = int(box[1])    # 左
-            y = int(box[0])    # 上
-            w = int(box[3]) - int(box[1])    # 右-左：宽
-            h = int(box[2]) - int(box[0])    # 下-上：高
-            if x < 0:
-                w = w + x
-                x = 0
-            if y < 0:
-                h = h + y
-                y = 0
-
             if predicted_class in special_types:  # 人和其他目标分开处理
                 person_classes.append(predicted_class)
-                person_boxs.append([x, y, w, h])    # 左上宽高
+                top, left, bottom, right = box
+                person_boxs.append([left, top, right, bottom])    # 左上宽高
                 person_scores.append(score)
             else:    # 其他类别用原始格式的框：上左下右
                 other_classes.append(predicted_class)
                 other_boxs.append(box)
                 other_scores.append(score)
+
+        # 2.单独对人做nms，确保每个人只有一个框
+        person_classes, person_boxs, person_scores = calc_person_nms(person_classes, person_boxs, person_scores)
+
         return (person_classes, person_boxs, person_scores), (other_classes, other_boxs, other_scores)
 
     def close_session(self):
