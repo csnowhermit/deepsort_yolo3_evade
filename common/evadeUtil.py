@@ -2,7 +2,7 @@ import os
 import math
 import numpy as np
 from collections import Counter
-from common.config import up_distance_rate, down_distance_rate, log
+from common.config import up_distance_rate, down_distance_rate, log, child_types
 from common.ContextParam import getContextParam
 from common.entity import TrackContent
 
@@ -62,6 +62,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                int(track.to_tlbr()[1]),
                int(track.to_tlbr()[2]),
                int(track.to_tlbr()[3])] for track in tracks]  # 所有人的人物框
+    classes = [track.classes for track in tracks]    # 所有人的类别
 
     if len(bboxes) < 1:
         flag = "NOBODY"
@@ -132,7 +133,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
 
     if len(multi_personList) > 0:    # 否则拿出各通道的人数，计算距离
         passwayPersonDict = {}    # <通道编号，通道内的人员list>
-        for i in range(len(which_gateList)):    #
+        for i in range(len(which_gateList)):    # 逐个通道获取各通道内的人的序号：
             if which_gateList[i] in multi_personList:
                 if which_gateList[i] in passwayPersonDict.keys():
                     tmp = passwayPersonDict.get(which_gateList[i])
@@ -140,16 +141,18 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                     passwayPersonDict[which_gateList[i]] = tmp
                 else:
                     passwayPersonDict[which_gateList[i]] = [i]
-        print("passwayPersonDict:", passwayPersonDict)    # passwayPersonDict: {2: [0, 1]}
+        print("通道-人对应关系 passwayPersonDict:", passwayPersonDict)    # passwayPersonDict: {2: [0, 1]}，表示2号通道出现了0号人和1号人
         log.logger.info("通道-人对应关系 passwayPersonDict: %s" % (passwayPersonDict))
 
         for passway in passwayPersonDict.keys():    # 逐个处理每一个通道的多人情况
             personList = passwayPersonDict[passway]    # 拿到该通道内的所有人在bboxes中的序列
             suspicion_evade_boxes = []  # 同一通道里的所有人框
+            suspicion_evade_classes = []    # 同一通道里的所有人类别
             for person_index in personList:    # 逐个分别处理每个通道的情况，而不是所有通道一起处理
                 suspicion_evade_boxes.append(bboxes[person_index])
+                suspicion_evade_classes.append(classes[person_index])
 
-            ## 2.3、计算两两之间的距离，通过次距离判断是否属于逃票
+            ## 2.3、计算两两之间的距离，通过次距离判断是否属于逃票，center跟personList平级，只是保存坐标点位不同
             center = [[abs(left) + (abs(right)- abs(left)) / 2,
                        abs(top) + (abs(bottom) -abs(top)) / 2] for (left, top, right, bottom) in suspicion_evade_boxes]
 
@@ -166,6 +169,11 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
                     log.logger.info("person1: %s, person2: %s, distance: %f" % (center[i], center[j], distance))
 
                     if distance >= down_distance_threshold and distance <= up_distance_threshold:  # 如果距离满足条件
+
+                        # 第i个人，第j个人
+                        if classes[i] in child_types or classes[j] in child_types:    # 只要两人中出现小孩，就不算逃票
+                            continue
+
                         suspicion1 = suspicion_evade_boxes[center.index(center[i])]  # 嫌疑人1
                         suspicion2 = suspicion_evade_boxes[center.index(center[j])]  # 嫌疑人2
                         print("通道 %s: %s %s 涉嫌逃票, distance: %f" % (passway, suspicion1, suspicion2, distance))    # [0, 0, 1, 2] [1, 1, 2, 2] 涉嫌逃票
@@ -190,6 +198,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
     for (track, which_gate, pass_status) in zip(tracks, which_gateList, pass_status_list):
         trackContent = TrackContent(gate_num=which_gate,    # 闸机编号
                                     pass_status=pass_status,
+                                    cls=track.classes,    # 人物类别：大人/小孩
                                     score=track.score,
                                     track_id=track.track_id,
                                     state=track.state,

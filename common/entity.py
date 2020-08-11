@@ -52,9 +52,10 @@ def getBox(line):
     原因：tracker.tracks里没有gate_num（闸机编号），pass_status（通过状态），direction（方向）字段，gate_status（闸机门）字段，gate_light_status（闸机灯）字段
 '''
 class TrackContent:
-    def __init__(self, gate_num, pass_status, score, track_id, state, bbox, direction, gate_status, gate_light_status):
+    def __init__(self, gate_num, pass_status, cls, score, track_id, state, bbox, direction, gate_status, gate_light_status):
         self.gate_num = gate_num    # 闸机编号
         self.pass_status = pass_status    # 通过状态：0正常通过，1涉嫌逃票
+        self.cls = cls    # 人物类别
         self.score = score    # 得分值
         self.track_id = track_id    # 人的id
         self.state = state    # 人的状态：1未确认，2已确认，3已丢失
@@ -66,11 +67,14 @@ class TrackContent:
 if __name__ == '__main__':
     trackContent = TrackContent(gate_num=0,
                                 pass_status=0,
+                                cls='child',
                                 score=.99,
                                 track_id=15,
                                 state=1,
                                 bbox=[1, 2, 3, 4],
-                                direction=0)
+                                direction=0,
+                                gate_status='open',
+                                gate_light_status='greenLight')
 
     import json
     # s = eval(trackContent)

@@ -14,12 +14,10 @@ from common.config import conn, cursor, log, table_name, evade_table_name
     :param save_file 图片保存路径
     :param read_time 读取耗时，s
     :param detect_time 检测耗时，s
-    :param predicted_class 检测类别：head/person
     :param TrackContentList 被追踪人的明细
     :return 
 '''
-def saveManyDetails2DB(ip, curr_time, savefile, read_time, detect_time, predicted_class, TrackContentList):
-    table_name = "details_%s" % (ip.replace(".", "_"))    # 表名：正常+逃票
+def saveManyDetails2DB(ip, curr_time, savefile, read_time, detect_time, TrackContentList):
     if table_exists(table_name) is False:
         create_detail_info_table(table_name)
     if table_exists(evade_table_name) is False:
@@ -36,7 +34,7 @@ def saveManyDetails2DB(ip, curr_time, savefile, read_time, detect_time, predicte
                                                      '%s', %f, '%s', %d, %d, 
                                                      '%s', '%s', '%s', '%s', '%s')
                                         ''' % (curr_time, savefile, trackContent.pass_status, read_time, detect_time,
-                                               predicted_class, trackContent.score, trackContent.bbox,
+                                               trackContent.cls, trackContent.score, trackContent.bbox,
                                                trackContent.track_id, trackContent.state,
                                                ip, trackContent.gate_num, trackContent.gate_status,
                                                trackContent.gate_light_status, trackContent.direction)
@@ -55,7 +53,7 @@ def saveManyDetails2DB(ip, curr_time, savefile, read_time, detect_time, predicte
                                         '%s', %f, '%s', %d, %d, 
                                         '%s', '%s', '%s', '%s', '%s')
                             ''' % (curr_time, savefile, trackContent.pass_status, read_time, detect_time,
-                                   predicted_class, trackContent.score, trackContent.bbox, trackContent.track_id,trackContent.state,
+                                   trackContent.cls, trackContent.score, trackContent.bbox, trackContent.track_id,trackContent.state,
                                    ip, trackContent.gate_num, trackContent.gate_status, trackContent.gate_light_status, trackContent.direction)
                 cursor.execute(sql)
                 conn.commit()

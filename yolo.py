@@ -165,9 +165,9 @@ class YOLO(object):
                 other_scores.append(score)
 
         # 2.单独对人做nms，确保每个人只有一个框
-        person_classes, person_boxs, person_scores = calc_person_nms(person_classes, person_boxs, person_scores)
+        (adult_classes, adult_boxs, adult_scores), (child_classes, child_boxs, child_scores) = calc_person_nms(person_classes, person_boxs, person_scores)
 
-        return (person_classes, person_boxs, person_scores), (other_classes, other_boxs, other_scores)
+        return (adult_classes, adult_boxs, adult_scores), (child_classes, child_boxs, child_scores), (other_classes, other_boxs, other_scores)
 
     def close_session(self):
         self.sess.close()

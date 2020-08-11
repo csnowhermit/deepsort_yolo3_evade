@@ -63,7 +63,7 @@ class Track:
 
     """
 
-    def __init__(self, mean, covariance, track_id, n_init, max_age,
+    def __init__(self, mean, covariance, track_id, n_init, max_age, cls,
                  feature=None, confidence=0):
         self.mean = mean
         self.covariance = covariance
@@ -71,7 +71,8 @@ class Track:
         self.hits = 1
         self.age = 1
         self.time_since_update = 0
-        self.score = confidence
+        self.score = confidence    # 置信度
+        self.classes = cls         # 类别
 
         self.state = TrackState.Tentative    # 初始时设置为unconfirmed，未确认状态
         self.features = []
@@ -143,6 +144,8 @@ class Track:
         self.hits += 1
         self.time_since_update = 0
         self.score = detection.confidence    # 置信度
+        self.classes = detection.classes     # 类别
+
         if self.state == TrackState.Tentative and self.hits >= self._n_init:    # 命中>=3次才确认，在tracker.py Tracker._initiate_track中传入 _n_init
             self.state = TrackState.Confirmed
 

@@ -19,11 +19,12 @@ from deep_sort.tracker import Tracker
 from tools import generate_detections as gdet
 from PIL import Image, ImageDraw, ImageFont
 import colorsys
-from common.config import tracker_type, normal_save_path, evade_save_path, ip, log, track_iou, image_size, rtsp_url, evade_origin_save_path, imgCacheSize, imgNearSize, evade_video_path
-from common.evadeUtil import evade_vote, calc_iou
+from common.config import normal_save_path, evade_save_path, ip, log, image_size, rtsp_url, evade_origin_save_path, imgCacheSize, imgNearSize, evade_video_path
+from common.evadeUtil import evade_vote
 from common.dateUtil import formatTimestamp
 from common.dbUtil import saveManyDetails2DB, getMaxPersonID
 from common.Stack import Stack
+from common.trackUtil import getUsefulTrack
 import threading
 
 warnings.filterwarnings('ignore')
@@ -145,62 +146,47 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
 
                 # image = Image.fromarray(frame)
                 image = Image.fromarray(frame[..., ::-1])  # bgr to rgb
-                # person_classes，既包括大人，也包括小孩，这时拿到的人物信息已经过nms
-                (person_classes, person_boxs, person_scores), \
+                # 大人和小孩分开处理，这时已进行nms
+                (adult_classes, adult_boxs, adult_scores), \
+                (child_classes, child_boxs, child_scores), \
                 (other_classes, other_boxs, other_scores) = yolo.detect_image(image)  # person_boxs格式：左上宽高
                 # print("person:", person_boxs, person_scores)    # 返回的结果均为[x, y, w, h]
                 # print("other:", other_classes, other_boxs, other_scores)
 
-                features = encoder(frame, person_boxs)    # 每个人做成128维的向量
+                # 每个人做成128维的向量
+                features_adult = encoder(frame, adult_boxs)    # 大人
+                features_child = encoder(frame, child_boxs)    # 小孩
                 # print("features:", type(features), features.shape)    # <class 'numpy.ndarray'> (n, 128)
 
-                # 这时detection里已没有了类别：即区分不出大人/小孩
-                detections = [Detection(bbox, confidence, feature) for bbox, confidence, feature in
-                              zip(person_boxs, person_scores, features)]
+                # 大人和小孩的Detection
+                detections_adult = [Detection(cls, bbox, confidence, feature) for cls, bbox, confidence, feature in
+                              zip(adult_classes, adult_boxs, adult_scores, features_adult)]
+                detections_child = [Detection(cls, bbox, confidence, feature) for cls, bbox, confidence, feature in
+                              zip(child_classes, child_boxs, child_scores, features_child)]
 
-                # 原来有nms，现去掉，原因：yolo.detect_image()本身已经做了nms
-                # 这里不区分大人/小孩，再统一做一次nms，消除 小孩识别成大人 的情况
-                boxes = np.array([d.tlwh for d in detections])
-                scores = np.array([d.confidence for d in detections])
-                indices = preprocessing.non_max_suppression(boxes, nms_max_overlap, scores)
-                detections = [detections[i] for i in indices]
+                # # 原来有nms，现去掉，原因：yolo.detect_image()本身已经做了nms
+                # boxes = np.array([d.tlwh for d in detections])
+                # scores = np.array([d.confidence for d in detections])
+                # indices = preprocessing.non_max_suppression(boxes, nms_max_overlap, scores)
+                # detections = [detections[i] for i in indices]
 
                 # Call the tracker
                 tracker.predict()
-                tracker.update(detections)
-                trackList = []  # 新的trackList
+                tracker.update(detections_adult + detections_child)    # Detection中有区分大人小孩了，这里直接放一起追踪
 
                 # 这里出现bug：误检，只检出一个人，为什么tracker.tracks中有三个人
                 # 原因：人走了，框还在
                 # 解决办法：更新后的tracker.tracks与person_boxs再做一次iou，对于每个person_boxs，只保留与其最大iou的track
 
-                if len(person_boxs) > 0 and len(tracker.tracks) > 0:    # 确保追踪器有值，避免calc_iou出错
-                    person_boxs_ltbr = [[person[0],
-                                         person[1],
-                                         person[0] + person[2],
-                                         person[1] + person[3]] for person in person_boxs]  # person_boxs：左上宽高-->左上右下
+                trackList_adult = getUsefulTrack(adult_boxs, tracker.tracks)
+                trackList_child = getUsefulTrack(child_boxs, tracker.tracks)
 
-                    track_box = [[int(track.to_tlbr()[0]),
-                                  int(track.to_tlbr()[1]),
-                                  int(track.to_tlbr()[2]),
-                                  int(track.to_tlbr()[3])] for track in tracker.tracks]  # 追踪器中的人
+                print("检测到：大人 %d %s, 小孩 %d %s" % (len(adult_boxs), adult_boxs, len(child_boxs), child_boxs))
+                print("追踪到：大人 %d %s, 小孩 %d %s" % (len(trackList_adult), trackList_adult, len(trackList_child), trackList_child))
+                log.logger.info("检测到：大人 %d %s, 小孩 %d %s" % (len(adult_boxs), adult_boxs, len(child_boxs), child_boxs))
+                log.logger.info("追踪到：大人 %d %s, 小孩 %d %s" % (len(trackList_adult), trackList_adult, len(trackList_child), trackList_child))
 
-                    iou_result = calc_iou(bbox1=person_boxs_ltbr, bbox2=track_box)  # 计算iou，做无效track框的过滤
-                    which_track = []
-                    for iou in iou_result:
-                        if iou.max() > track_iou:  # 如果最大iou>0.45，则认为是这个人
-                            which_track.append(iou.argmax())  # 保存tracker.tracks中该人的下标
-                    # 在tracker.tracks中移除不在which_track的元素
-                    for i in range(len(tracker.tracks)):
-                        if i in which_track:
-                            trackList.append(tracker.tracks[i])
-                    # tracker.tracks.clear()  # 清空tracks    # tracker.tracks不能清空，原因：会丢失当前person_id信息
-
-                print("检测到 %d 人: %s" % (len(person_boxs), person_boxs))
-                print("追踪到 %d 人: %s" % (len(trackList), trackList))
-                log.logger.info("检测到 %d 人: %s" % (len(person_boxs), person_boxs))
-                log.logger.info("追踪到 %d 人: %s" % (len(trackList), trackList))
-
+                trackList = trackList_adult + trackList_child
                 # 判定通行状态：0正常通过，1涉嫌逃票
                 flag, TrackContentList = evade_vote(trackList, other_classes, other_boxs, other_scores,
                                                     frame.shape[0])  # frame.shape, (h, w, c)
@@ -212,7 +198,7 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
 
                 for track in trackList:  # 标注人，track.state=0/1，都在tracker.tracks中
                     bbox = track.to_tlbr()  # 左上右下
-                    label = '{} {:.2f} {} {}'.format("head", track.score, track.track_id, track.state)
+                    label = '{} {:.2f} {} {}'.format(track.classes, track.score, track.track_id, track.state)
                     label_size = draw.textsize(label, font)
 
                     left, top, right, bottom = bbox
@@ -232,11 +218,12 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                     for i in range(thickness):
                         draw.rectangle(
                             [left + i, top + i, right - i, bottom - i],
-                            outline=colors[class_names.index(tracker_type)])
+                            outline=colors[class_names.index(track.classes)])
                     draw.rectangle(
                         [tuple(text_origin), tuple(text_origin + label_size)],
-                        fill=colors[class_names.index(tracker_type)])
+                        fill=colors[class_names.index(track.classes)])
                     draw.text(text_origin, label, fill=(0, 0, 0), font=font)
+
                 for (other_cls, other_box, other_score) in zip(other_classes, other_boxs,
                                                                other_scores):  # 其他的识别，只标注类别和得分值
                     label = '{} {:.2f}'.format(other_cls, other_score)
@@ -350,7 +337,6 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                                        savefile=savefile,
                                        read_time=read_time,
                                        detect_time=detect_time,
-                                       predicted_class=tracker_type,
                                        TrackContentList=TrackContentList)  # 批量入库
                 print("******************* end a image reco %s *******************" % (formatTimestamp(time.time(), ms=True)))
                 log.logger.info("******************* end a image reco %s *******************" % (formatTimestamp(time.time(), ms=True)))

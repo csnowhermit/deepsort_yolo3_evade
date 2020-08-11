@@ -31,7 +31,9 @@ evade_table_name = "evade_details"    # 逃票表（所有摄像头都存一张�
 
 # 需特殊处理的类别
 special_types = ['head', 'person', 'child']
-tracker_type = 'head'    # 需要tracker的类别
+# tracker_type = 'head'    # 需要tracker的类别
+adult_types = ['head', 'person']    # 大人的表现类别
+child_types = ['child']    # 小孩的表现类别
 
 # 保存路径
 normal_save_path = "D:/monitor_images/" + ip + "/normal_images/"

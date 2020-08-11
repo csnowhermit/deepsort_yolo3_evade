@@ -36,18 +36,30 @@ def calc_person_nms(person_classes, person_boxs, person_scores):
             else:
                 pass
 
-    new_person_classes = []
-    new_person_scores = []
-    new_person_boxs = []
+    adult_classes = []
+    adult_scores = []
+    adult_boxs = []    # 大人
+
+    child_classes = []
+    child_scores = []
+    child_boxs = []    # 小孩
     for i in range(len(person_classes)):
         if i not in nms_box_indexes:
-            new_person_classes.append(person_classes[i])
-            box = person_boxs[i]
-            left, top, right, bottom = box
-            new_person_boxs.append([int(left), int(top), int(right - left), int(bottom - top)])      # 转为 左上宽高，供tracker用
+            if person_classes[i] in ['child']:
+                child_classes.append(person_classes[i])
+                box = person_boxs[i]
+                left, top, right, bottom = box
+                child_boxs.append([int(left), int(top), int(right - left), int(bottom - top)])      # 转为 左上宽高，供tracker用
 
-            new_person_scores.append(person_scores[i])
-    return new_person_classes, new_person_boxs, new_person_scores
+                child_scores.append(person_scores[i])
+            else:
+                adult_classes.append(person_classes[i])
+                box = person_boxs[i]
+                left, top, right, bottom = box
+                adult_boxs.append([int(left), int(top), int(right - left), int(bottom - top)])  # 转为 左上宽高，供tracker用
+
+                adult_scores.append(person_scores[i])
+    return (adult_classes, adult_boxs, adult_scores), (child_classes, child_boxs, child_scores)
 
 if __name__ == '__main__':
     person_classes = ['child', 'head', 'head']

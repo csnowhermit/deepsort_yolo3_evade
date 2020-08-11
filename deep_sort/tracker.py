@@ -135,5 +135,6 @@ class Tracker:
         mean, covariance = self.kf.initiate(detection.to_xyah())
         self.tracks.append(Track(
             mean, covariance, self._next_id, self.n_init, self.max_age,
+            detection.classes,                           # 加上类别
             detection.feature, detection.confidence))    # 加上置信度
         self._next_id += 1
