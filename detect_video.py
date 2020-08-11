@@ -120,10 +120,11 @@ def main(yolo, input_path, output_path):
         trackList_child = getUsefulTrack(child_boxs, tracker.tracks)
 
         print("检测到：大人 %d %s, 小孩 %d %s" % (len(adult_boxs), adult_boxs, len(child_boxs), child_boxs))
-        print("追踪到：大人 %d %s, 小孩 %d %s" % (len(trackList_adult), trackList_adult, len(trackList_child), trackList_child))
+        print("追踪到：大人 %d %s, 小孩 %d %s" % (len(trackList_adult), [track.to_tlbr() for track in trackList_adult],
+                                                   len(trackList_child), [track.to_tlbr() for track in trackList_child]))
         log.logger.info("检测到：大人 %d %s, 小孩 %d %s" % (len(adult_boxs), adult_boxs, len(child_boxs), child_boxs))
-        log.logger.info(
-            "追踪到：大人 %d %s, 小孩 %d %s" % (len(trackList_adult), trackList_adult, len(trackList_child), trackList_child))
+        log.logger.info("追踪到：大人 %d %s, 小孩 %d %s" % (len(trackList_adult), trackList_adult,
+                                                             len(trackList_child), trackList_child))
 
         trackList = trackList_adult + trackList_child
         # 判定通行状态：0正常通过，1涉嫌逃票
