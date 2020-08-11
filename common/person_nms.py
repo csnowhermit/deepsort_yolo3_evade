@@ -24,7 +24,7 @@ def calc_person_nms(person_classes, person_boxs, person_scores):
             iou_result = calc_iou(box1, box2)
             # if iou_result == 1:
             # print(i, j, iou_result[0])
-            if iou_result[0] > 0.0 and iou_result[0] <= 1.0:  # 如果两个不同框有交集
+            if iou_result[0] > 0.0 and iou_result[0] <= 1.0:  # 如果两个不同框有交集，<=1.0，出现过两个不同人完全相同框的情况
                 if iou_result[0] > person_nms_iou:        # 且大于阀值
                     # final = max(person_scores[i], person_scores[j])    # 谁得分大就选定是谁
                     if person_scores[i] > person_scores[j]:
