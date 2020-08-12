@@ -21,3 +21,8 @@ adult_boxs = [[537.6127, 283.58765, 604.105, 350.898], [546.5691, 78.46593, 627.
 print(child_classes + adult_classes)
 print(child_scores + adult_scores)
 print(child_boxs + adult_boxs)
+
+from common.config import child_types
+
+if 'child' in child_types:
+    print("True")
