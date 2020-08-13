@@ -354,8 +354,8 @@ if __name__ == '__main__':
     imgCacheList = []    # 原图缓存队列，用做视频拼接
     md5List = []    # 原图缓存队列中每帧的md5值
     # input_path = "E:/BaiduNetdiskDownload/2020-04-14/10.6.8.181_01_20200414185039477.mp4"
-    input_path = 0
-    t1 = threading.Thread(target=capture_thread, args=(input_path, frame_buffer, lock, imgCacheList, md5List))
+    # input_path = 0
+    t1 = threading.Thread(target=capture_thread, args=(rtsp_url, frame_buffer, lock, imgCacheList, md5List))
     t1.start()
     t2 = threading.Thread(target=detect_thread, args=(frame_buffer, lock, imgCacheList, md5List))
     t2.start()

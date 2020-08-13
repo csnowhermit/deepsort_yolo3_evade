@@ -17,6 +17,9 @@ rtsp_url = "rtsp://admin:quickhigh123456@192.168.120.155/h264/ch1/sub/av_stream"
 # image_size = "1920x1080"
 image_size = (1920, 1080)    # 图片大小
 
+# 图像有效区域比例，以中心点算
+effective_area_rate = (1, 0.9)    # 宽，高。表示宽维度上所有都有效，高维度上由中心点算起，最中间的80%区域有效（即上下各有10%的留白区）
+
 # 数据库
 conn = pymysql.connect(host='127.0.0.1',
                        port=3306,
@@ -30,10 +33,13 @@ table_name = "details_%s" % (ip.replace(".", "_"))    # 表名：正常+逃票
 evade_table_name = "evade_details"    # 逃票表（所有摄像头都存一张表）
 
 # 需特殊处理的类别
-special_types = ['head', 'person', 'child']
+person_types = ['head', 'person', 'child']
 # tracker_type = 'head'    # 需要tracker的类别
 adult_types = ['head', 'person']    # 大人的表现类别
 child_types = ['child']    # 小孩的表现类别
+goods_types = ['backpack', 'cell phone', 'umbrella', 'handbag', 'pushcart', 'trunk']    # 其他的表现类别
+
+
 
 # 保存路径
 normal_save_path = "D:/monitor_images/" + ip + "/normal_images/"

@@ -14,8 +14,8 @@ from yolo3.model import yolo_eval, yolo_body
 from yolo3.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
-from common.config import special_types, log
-from common.person_nms import calc_person_nms
+from common.config import person_types, goods_types, log, image_size, effective_area_rate
+from common.person_nms import calc_special_nms
 
 class YOLO(object):
     _defaults = {
@@ -58,6 +58,7 @@ class YOLO(object):
         self.model_image_size = self.get_defaults("model_image_size")  # fixed size or (None, None)
         self.is_fixed_size = self.model_image_size != (None, None)
         self.boxes, self.scores, self.classes = self.generate()
+        self.effective_area = self.get_effective_area()
 
     def _get_class(self):
         classes_path = os.path.expanduser(self.classes_path)
@@ -115,6 +116,36 @@ class YOLO(object):
                 score_threshold=self.score, iou_threshold=self.iou)
         return boxes, scores, classes
 
+    '''
+        根据config.py的image_size，effective_area_rate，计算有效区域
+        :return 返回有效区域：左上右下
+    '''
+    def get_effective_area(self):
+        center = (image_size[0]/2, image_size[1]/2)    # 中心点坐标
+        width = image_size[0] * effective_area_rate[0]    # 有效区域宽度
+        height = image_size[1] * effective_area_rate[1]    # 有效区域高度
+
+        return (int(center[0] - width / 2), int(center[1] - height / 2), int(center[0] + width / 2), int(center[1] + height / 2))
+
+    '''
+        判断人物框是否在有效区间内
+        :param box 原始检出的box
+        :return True，在有效区间内；False，不在有效区间内
+    '''
+    def is_effective(self, box):
+        top, left, bottom, right = box    # 原始结果为：上左下右
+        w = right - left
+        h = bottom - top
+        centerx = left + w / 2
+        centery = top + h / 2
+
+        effective_left, effective_top, effective_right, effective_bottom = self.effective_area    # 标定的有效区域为：坐上一下
+
+        if (centerx >= effective_left and centerx <= effective_right) and (centery >= effective_top and centery <= effective_bottom):
+            return True
+        else:
+            return False
+
     def detect_image(self, image):
         if self.is_fixed_size:
             assert self.model_image_size[0] % 32 == 0, 'Multiples of 32 required'
@@ -137,9 +168,9 @@ class YOLO(object):
                 self.input_image_shape: [image.size[1], image.size[0]],
                 K.learning_phase(): 0
             })
-        person_classes = []  # 人，用于做tracker
-        person_boxs = []
-        person_scores = []
+        special_classes = []  # 人，物品
+        special_boxs = []
+        special_scores = []
 
         other_classes = []  # 其他物品，只用来显示
         other_boxs = []
@@ -154,19 +185,31 @@ class YOLO(object):
             print("原始检出：%s %s %s" % (predicted_class, box, score))
             log.logger.info("原始检出：%s %s %s" % (predicted_class, box, score))
 
-            if predicted_class in special_types:  # 人和其他目标分开处理
-                person_classes.append(predicted_class)
+            if predicted_class in person_types:  # 如果是人，只有在有效区域内才算
+                # 这里做有效区域范围的过滤，解决快出框了person_id变了的bug
+                if self.is_effective(box) is True:    # 只有在有效范围内，才算数
+                    special_classes.append(predicted_class)
+                    top, left, bottom, right = box
+                    special_boxs.append([left, top, right, bottom])  # 左上宽高
+                    special_scores.append(score)
+            elif predicted_class in goods_types:    # 随身物品，直接算
+                special_classes.append(predicted_class)
                 top, left, bottom, right = box
-                person_boxs.append([left, top, right, bottom])    # 左上宽高
-                person_scores.append(score)
+                special_boxs.append([left, top, right, bottom])  # 左上宽高
+                special_scores.append(score)
             else:    # 其他类别用原始格式的框：上左下右
                 other_classes.append(predicted_class)
                 other_boxs.append(box)
                 other_scores.append(score)
 
-        # 2.单独对人做nms，确保每个人只有一个框
-        (adult_classes, adult_boxs, adult_scores), (child_classes, child_boxs, child_scores) = calc_person_nms(person_classes, person_boxs, person_scores)
+        # 2.单独对人和物做nms，确保每个人/物只有一个框
+        (adult_classes, adult_boxs, adult_scores), \
+        (child_classes, child_boxs, child_scores), \
+        (goods_classes, goods_boxs, goods_scores) = calc_special_nms(special_classes, special_boxs, special_scores)
 
+        other_classes = other_classes + goods_classes
+        other_boxs = other_boxs + goods_boxs
+        other_scores = other_scores + goods_scores
         return (adult_classes, adult_boxs, adult_scores), (child_classes, child_boxs, child_scores), (other_classes, other_boxs, other_scores)
 
     def close_session(self):
