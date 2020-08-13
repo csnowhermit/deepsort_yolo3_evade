@@ -6,7 +6,9 @@ Class definition of YOLO_v3 style detection model on image and video
 import colorsys
 
 import numpy as np
+import tensorflow as tf
 from keras import backend as K
+from keras.backend import tensorflow_backend as KTF    # 自定义keras的session用
 from keras.models import load_model
 from keras.layers import Input
 
@@ -54,11 +56,21 @@ class YOLO(object):
         self.__dict__.update(kwargs) # and update with user overrides
         self.class_names = self._get_class()
         self.anchors = self._get_anchors()
-        self.sess = K.get_session()
+        # self.sess = K.get_session()    # 默认session：默认占满整块gpu
+        self.sess = self.get_session()    # 自定义的session
+        KTF.set_session(self.sess)
+
         self.model_image_size = self.get_defaults("model_image_size")  # fixed size or (None, None)
         self.is_fixed_size = self.model_image_size != (None, None)
         self.boxes, self.scores, self.classes = self.generate()
         self.effective_area = self.get_effective_area()
+
+    '''
+        自定义keras的session
+    '''
+    def get_session(self):
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.3, allow_growth=True)
+        return tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 
     def _get_class(self):
         classes_path = os.path.expanduser(self.classes_path)
