@@ -51,6 +51,7 @@ def unique_config_sections(config_file):
 
 # %%
 def _main(args):
+    print("args:", args)
     config_path = os.path.expanduser(args.config_path)
     weights_path = os.path.expanduser(args.weights_path)
     assert config_path.endswith('.cfg'), '{} is not a .cfg file'.format(
@@ -81,6 +82,7 @@ def _main(args):
 
     print('Creating Keras model.')
     input_layer = Input(shape=(None, None, 3))
+    # input_layer = Input(shape=(416, 416, 3))    # 指定输入的图片大小
     prev_layer = input_layer
     all_layers = []
 
@@ -118,7 +120,7 @@ def _main(args):
                 buffer=weights_file.read(filters * 4))
             count += filters
 
-            if batch_normalize:
+            if batch_normalize:    # bn层的bias
                 bn_weights = np.ndarray(
                     shape=(3, filters),
                     dtype='float32',
@@ -132,6 +134,7 @@ def _main(args):
                     bn_weights[2]  # running var
                 ]
 
+            # 权重层的w
             conv_weights = np.ndarray(
                 shape=darknet_w_shape,
                 dtype='float32',
@@ -222,7 +225,7 @@ def _main(args):
             all_layers.append(None)
             prev_layer = all_layers[-1]
 
-        elif section.startswith('net'):
+        elif section.startswith('net'):    # 这里是最前面的超参数部分
             pass
 
         else:
