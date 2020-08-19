@@ -171,8 +171,10 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                 # detections = [detections[i] for i in indices]
 
                 # Call the tracker
+                # 1.卡门滤波预测阶段：通过均值和协方差，预测前一帧中的tracks在当前帧的状态
                 tracker.predict()
-                tracker.update(detections_adult + detections_child)    # Detection中有区分大人小孩了，这里直接放一起追踪
+                # 2.卡门滤波更新阶段：对每个匹配成功的track，用其对应的detection进行更新，同时处理未匹配的tracks和detection
+                tracker.update(detections_adult + detections_child)  # Detection中有区分大人小孩了，这里直接放一起追踪
 
                 # 这里出现bug：误检，只检出一个人，为什么tracker.tracks中有三个人
                 # 原因：人走了，框还在

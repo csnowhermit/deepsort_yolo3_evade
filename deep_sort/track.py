@@ -121,7 +121,7 @@ class Track:
             The Kalman filter.
 
         """
-        self.mean, self.covariance = kf.predict(self.mean, self.covariance)
+        self.mean, self.covariance = kf.predict(self.mean, self.covariance)    # 通过均值和协方差，预测前一帧中的tracks在当前帧的状态
         self.age += 1
         self.time_since_update += 1
 

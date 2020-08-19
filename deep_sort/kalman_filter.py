@@ -129,8 +129,10 @@ class KalmanFilter(object):
         ----------
         mean : ndarray
             The state's mean vector (8 dimensional array).
+            均值，(cx, cy, w, h, vx, vy, vw, vh)，中心点，宽高，各方向上的速度
         covariance : ndarray
             The state's covariance matrix (8x8 dimensional).
+            协方差，表示目标位置信息的不确定性，由8*8的对角矩阵表示。矩阵中数字越大表明不确定性越大，可以以任意值初始化。
 
         Returns
         -------
@@ -144,11 +146,11 @@ class KalmanFilter(object):
             self._std_weight_position * mean[3],
             1e-1,
             self._std_weight_position * mean[3]]
-        innovation_cov = np.diag(np.square(std))
+        innovation_cov = np.diag(np.square(std))    # 初始化噪声矩阵R
 
-        mean = np.dot(self._update_mat, mean)
+        mean = np.dot(self._update_mat, mean)    # 将均值向量映射到检测空间
         covariance = np.linalg.multi_dot((
-            self._update_mat, covariance, self._update_mat.T))
+            self._update_mat, covariance, self._update_mat.T))    # 将协方差矩阵映射到检测空间
         return mean, covariance + innovation_cov
 
     def update(self, mean, covariance, measurement):
