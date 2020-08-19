@@ -20,29 +20,29 @@ from common.config import person_types, goods_types, log, image_size, effective_
 from common.person_nms import calc_special_nms
 
 class YOLO(object):
-    # _defaults = {
-    #     # "model_path": 'model_data/trained_weights_final-20200709-all-epoch=50.h5',
-    #     "model_path": 'model_data/trained_weights_final-20200807-all-epoch=100-200.h5',
-    #     # "model_path": 'model_data/yolo_weights.h5',
-    #     "anchors_path": 'model_data/yolo_anchors.txt',
-    #     "classes_path": 'model_data/evade_classes.txt',
-    #     "score" : 0.3,
-    #     "iou" : 0.45,
-    #     "model_image_size" : (416, 416),
-    #     "gpu_num" : 1,
-    # }
-
-    # 多路摄像头同时接一个识别实例用这组参数
     _defaults = {
-        "model_path": '../model_data/trained_weights_final-20200807-all-epoch=100-200.h5',
+        # "model_path": 'model_data/trained_weights_final-20200709-all-epoch=50.h5',
+        "model_path": 'model_data/trained_weights_final-20200807-all-epoch=100-200.h5',
         # "model_path": 'model_data/yolo_weights.h5',
-        "anchors_path": '../model_data/yolo_anchors.txt',
-        "classes_path": '../model_data/evade_classes.txt',
-        "score": 0.3,
-        "iou": 0.45,
-        "model_image_size": (416, 416),
-        "gpu_num": 1,
+        "anchors_path": 'model_data/yolo_anchors.txt',
+        "classes_path": 'model_data/evade_classes.txt',
+        "score" : 0.3,
+        "iou" : 0.45,
+        "model_image_size" : (416, 416),
+        "gpu_num" : 1,
     }
+
+    # # 多路摄像头同时接一个识别实例用这组参数
+    # _defaults = {
+    #     "model_path": '../model_data/trained_weights_final-20200807-all-epoch=100-200.h5',
+    #     # "model_path": 'model_data/yolo_weights.h5',
+    #     "anchors_path": '../model_data/yolo_anchors.txt',
+    #     "classes_path": '../model_data/evade_classes.txt',
+    #     "score": 0.3,
+    #     "iou": 0.45,
+    #     "model_image_size": (416, 416),
+    #     "gpu_num": 1,
+    # }
 
     @classmethod
     def get_defaults(cls, n):
