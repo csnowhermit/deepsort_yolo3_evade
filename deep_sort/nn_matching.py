@@ -173,5 +173,5 @@ class NearestNeighborDistanceMetric(object):
         """
         cost_matrix = np.zeros((len(targets), len(features)))
         for i, target in enumerate(targets):
-            cost_matrix[i, :] = self._metric(self.samples[target], features)
+            cost_matrix[i, :] = self._metric(self.samples[target], features)    # 计算tracks中第i项与所有features的余弦距离
         return cost_matrix

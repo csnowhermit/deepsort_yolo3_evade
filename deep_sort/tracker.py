@@ -101,10 +101,14 @@ class Tracker:
         def gated_metric(tracks, dets, track_indices, detection_indices):
             features = np.array([dets[i].feature for i in detection_indices])    # 检测到的
             targets = np.array([tracks[i].track_id for i in track_indices])      # 卡门滤波预测到的
-            cost_matrix = self.metric.distance(features, targets)    # 基于外观信息，计算tracks和detections的余弦距离的代价矩阵
+
+            # 基于外观信息，计算tracks和detections的余弦距离的代价矩阵
+            cost_matrix = self.metric.distance(features, targets)    # 分别计算features（检测到的特征）和targets（卡门滤波预测到的track_id）的余弦距离
+
+            # 基于马氏距离，过滤掉代价矩阵中的不合适的项（将其设置为一个较大的值）
             cost_matrix = linear_assignment.gate_cost_matrix(
                 self.kf, cost_matrix, tracks, dets, track_indices,
-                detection_indices)    # 基于马氏距离，过滤掉代价矩阵中的不合适的项（将其设置为一个较大的值）
+                detection_indices)
 
             return cost_matrix    # 返回代价矩阵
 

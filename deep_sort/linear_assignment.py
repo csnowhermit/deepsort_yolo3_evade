@@ -53,13 +53,13 @@ def min_cost_matching(
         return [], track_indices, detection_indices  # Nothing to match.
 
     cost_matrix = distance_metric(
-        tracks, detections, track_indices, detection_indices)
+        tracks, detections, track_indices, detection_indices)    # 计算代价矩阵
     cost_matrix[cost_matrix > max_distance] = max_distance + 1e-5
     indices = linear_assignment(cost_matrix)    # 采用匈牙利算法进行匹配
 
     matches, unmatched_tracks, unmatched_detections = [], [], []
     for col, detection_idx in enumerate(detection_indices):
-        if col not in indices[:, 1]:
+        if col not in indices[:, 1]:    # 如果不在indices里，就认为未匹配到
             unmatched_detections.append(detection_idx)
     for row, track_idx in enumerate(track_indices):
         if row not in indices[:, 0]:
@@ -178,13 +178,13 @@ def gate_cost_matrix(
         Returns the modified cost matrix.
 
     """
-    gating_dim = 2 if only_position else 4
-    gating_threshold = kalman_filter.chi2inv95[gating_dim]
+    gating_dim = 2 if only_position else 4    # 数据维度
+    gating_threshold = kalman_filter.chi2inv95[gating_dim]    # 根据数据维度拿到卡门滤波器的阀值
     measurements = np.asarray(
         [detections[i].to_xyah() for i in detection_indices])
     for row, track_idx in enumerate(track_indices):
         track = tracks[track_idx]
         gating_distance = kf.gating_distance(
-            track.mean, track.covariance, measurements, only_position)
+            track.mean, track.covariance, measurements, only_position)    # 计算实际卡门滤波的距离
         cost_matrix[row, gating_distance > gating_threshold] = gated_cost
     return cost_matrix
