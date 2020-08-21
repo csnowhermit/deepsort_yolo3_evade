@@ -74,9 +74,9 @@ class Tracker:
             self.tracks[track_idx].update(
                 self.kf, detections[detection_idx])
             # print("++++tracker.py detections[detection_idx]:", type(detections[detection_idx]), detections[detection_idx])     # <class 'deep_sort.detection.Detection'> <deep_sort.detection.Detection object at 0x000001E00226FEB8>
-        for track_idx in unmatched_tracks:    # 未匹配的认为丢失
+        for track_idx in unmatched_tracks:    # 未匹配的tracks认为丢失
             self.tracks[track_idx].mark_missed()
-        for detection_idx in unmatched_detections:
+        for detection_idx in unmatched_detections:    # 未匹配的detections认为是新目标
             self._initiate_track(detections[detection_idx])
         self.tracks = [t for t in self.tracks if not t.is_deleted()]    # 将已经丢失的目标移除出队列
 
@@ -102,7 +102,7 @@ class Tracker:
             features = np.array([dets[i].feature for i in detection_indices])    # 检测到的
             targets = np.array([tracks[i].track_id for i in track_indices])      # 卡门滤波预测到的
 
-            # 基于外观信息，计算tracks和detections的余弦距离的代价矩阵
+            # 基于外观信息，计算代价矩阵（内容：tracks和detections的features的余弦距离）
             cost_matrix = self.metric.distance(features, targets)    # 分别计算features（检测到的特征）和targets（卡门滤波预测到的track_id）的余弦距离
 
             # 基于马氏距离，过滤掉代价矩阵中的不合适的项（将其设置为一个较大的值）

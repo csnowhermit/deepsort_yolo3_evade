@@ -16,7 +16,7 @@ from yolo3.model import yolo_eval, yolo_body, tiny_yolo_body
 from yolo3.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
-from common.config import person_types, goods_types, log, image_size, effective_area_rate
+from common.config import person_types, goods_types, log, image_size, effective_area_rate, person_types_threahold
 from common.person_nms import calc_special_nms
 
 class YOLO(object):
@@ -151,7 +151,7 @@ class YOLO(object):
         centerx = left + w / 2
         centery = top + h / 2
 
-        effective_left, effective_top, effective_right, effective_bottom = self.effective_area    # 标定的有效区域为：坐上一下
+        effective_left, effective_top, effective_right, effective_bottom = self.effective_area    # 标定的有效区域为：左上右下
 
         if (centerx >= effective_left and centerx <= effective_right) and (centery >= effective_top and centery <= effective_bottom):
             return True
@@ -200,10 +200,11 @@ class YOLO(object):
             if predicted_class in person_types:  # 如果是人，只有在有效区域内才算
                 # 这里做有效区域范围的过滤，解决快出框了person_id变了的bug
                 if self.is_effective(box) is True:    # 只有在有效范围内，才算数
-                    special_classes.append(predicted_class)
-                    top, left, bottom, right = box
-                    special_boxs.append([left, top, right, bottom])  # 左上宽高
-                    special_scores.append(score)
+                    if score >= person_types_threahold:    # 只有大于置信度的，才能视为人头
+                        special_classes.append(predicted_class)
+                        top, left, bottom, right = box
+                        special_boxs.append([left, top, right, bottom])  # 左上宽高
+                        special_scores.append(score)
             elif predicted_class in goods_types:    # 随身物品，直接算
                 special_classes.append(predicted_class)
                 top, left, bottom, right = box
