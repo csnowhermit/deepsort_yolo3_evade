@@ -150,7 +150,7 @@ def evade_vote(tracks, other_classes, other_boxs, other_scores, height):
         log.logger.info("通道-人对应关系 passwayPersonDict: %s" % (passwayPersonDict))
 
         for passway in passwayPersonDict.keys():    # 逐个处理每一个通道的多人情况
-            personList = passwayPersonDict[passway]    # 拿到该通道内的所有人在bboxes中的序列
+            personList = passwayPersonDict[passway]    # 拿到该通道内的所有人在bboxes中的序列，passway为通道编号
             suspicion_evade_boxes = []  # 同一通道里的所有人框
             suspicion_evade_classes = []    # 同一通道里的所有人类别
 
