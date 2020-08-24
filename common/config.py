@@ -67,8 +67,8 @@ down_distance_rate = 0.2
 
 
 # 日志文件
-# logfile = 'D:/evade_logs/evade_%s.log' % ip
-logfile = 'D:/evade_logs/evade.log'    # 多路摄像机同时接入一个实例识别时，用这个log
+logfile = 'D:/evade_logs/evade_%s.log' % ip
+# logfile = 'D:/evade_logs/evade.log'    # 多路摄像机同时接入一个实例识别时，用这个log
 log = Logger(logfile, level='info')
 
 
