@@ -347,9 +347,6 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                                        TrackContentList=TrackContentList)  # 批量入库
                 print("******************* end a image reco %s *******************" % (formatTimestamp(time.time(), ms=True)))
                 log.logger.info("******************* end a image reco %s *******************" % (formatTimestamp(time.time(), ms=True)))
-        except ValueError as e:
-            print("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
-            log.logger.error("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
         except Exception as e:
             log.logger.error(traceback.format_exc())
     cv2.destroyAllWindows()
