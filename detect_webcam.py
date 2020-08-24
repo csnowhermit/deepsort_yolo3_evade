@@ -136,15 +136,6 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                 read_t1 = time.time()  # 读取动作开始
                 lock.acquire()
                 frame = frame_buffer.pop()  # 每次拿最新的
-
-                # 拿到当前帧对应的上下文
-                sign = hashlib.md5(frame).hexdigest()
-                index = md5List.index(sign)  # 用md5值匹配找图
-
-                start = max(0, index - imgNearSize)
-                end = min(len(imgCacheList), index + imgNearSize)
-                tmp = imgCacheList[start: end]    # 用于拼接视频
-
                 lock.release()
 
                 print("=================== start a image reco %s ===================" % (formatTimestamp(time.time(), ms=True)))
@@ -315,15 +306,33 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                             curr_time_path, flag, originfile, status2, savefile, status))
 
                         # 开始拼接视频
-                        video_FourCC = 875967080
-                        video_fps = 25
-                        video_size = (frame.shape[1], frame.shape[0])
-                        video_file = os.path.join(evade_video_time_path, ip + "_" + curr_time_path + ".mp4")
+                        lock.acquire()
+                        try:
+                            # index = imgCacheList.index(frame)    # 找到当前图片的所属下标
+                            sign = hashlib.md5(frame).hexdigest()
+                            index = md5List.index(sign)  # 用md5值匹配找图
 
-                        out = cv2.VideoWriter(video_file, video_FourCC, video_fps, video_size)
-                        for t in tmp:
-                            out.write(t)
-                        out.release()
+                            start = max(0, index - imgNearSize)
+                            end = min(len(imgCacheList), index + imgNearSize)
+                            tmp = imgCacheList[start: end]
+                            lock.release()
+
+                            video_FourCC = 875967080
+                            video_fps = 25
+                            video_size = (frame.shape[1], frame.shape[0])
+                            video_file = os.path.join(evade_video_time_path, ip + "_" + curr_time_path + ".mp4")
+
+                            out = cv2.VideoWriter(video_file, video_FourCC, video_fps, video_size)
+                            for t in tmp:
+                                out.write(t)
+                            out.release()
+
+                            print("视频保存完成: %s" % (video_file))
+                            log.logger.info("视频保存完成: %s" % (video_file))
+                        except ValueError as e:
+                            lock.release()
+                            print("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
+                            log.logger.error("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
 
                         print("视频保存完成: %s" % (video_file))
                         log.logger.info("视频保存完成: %s" % (video_file))
@@ -354,7 +363,7 @@ if __name__ == '__main__':
     md5List = []    # 原图缓存队列中每帧的md5值
     # input_path = "E:/BaiduNetdiskDownload/2020-04-14/10.6.8.181_01_20200414185039477.mp4"
     # input_path = 0
-    t1 = threading.Thread(target=capture_thread, args=(0, frame_buffer, lock, imgCacheList, md5List))
+    t1 = threading.Thread(target=capture_thread, args=(rtsp_url, frame_buffer, lock, imgCacheList, md5List))
     t1.start()
     t2 = threading.Thread(target=detect_thread, args=(frame_buffer, lock, imgCacheList, md5List))
     t2.start()
