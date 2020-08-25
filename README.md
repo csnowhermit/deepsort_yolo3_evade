@@ -6,4 +6,4 @@
 
 ​	模型转换。
 
-​	模型基于pyTorch训练，但应用系统基于keras构建，需要讲pyTorch模型转为keras模型。
+​	模型基于pyTorch训练，但应用系统基于keras构建，需要将pyTorch模型转为keras模型。
