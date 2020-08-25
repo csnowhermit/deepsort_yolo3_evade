@@ -203,12 +203,12 @@ class YOLO(object):
                     if score >= person_types_threahold:    # 只有大于置信度的，才能视为人头
                         special_classes.append(predicted_class)
                         top, left, bottom, right = box
-                        special_boxs.append([left, top, right, bottom])  # 左上宽高
+                        special_boxs.append([left, top, right, bottom])  # 左上右下，经过calc_special_nms()才转为 左上宽高
                         special_scores.append(score)
             elif predicted_class in goods_types:    # 随身物品，直接算
                 special_classes.append(predicted_class)
                 top, left, bottom, right = box
-                special_boxs.append([left, top, right, bottom])  # 左上宽高
+                special_boxs.append([left, top, right, bottom])  # 左上右下，经过calc_special_nms()才转为 左上宽高
                 special_scores.append(score)
             else:    # 其他类别用原始格式的框：上左下右
                 other_classes.append(predicted_class)
