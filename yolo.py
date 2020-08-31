@@ -23,6 +23,7 @@ class YOLO(object):
     _defaults = {
         # "model_path": 'model_data/trained_weights_final-20200709-all-epoch=50.h5',
         "model_path": 'model_data/trained_weights_final-20200807-all-epoch=100-200.h5',
+        "model_path": "model_data/trained_weights_final-20200829-all-gatesplit-epoch=100-200.h5",
         # "model_path": 'model_data/yolo_weights.h5',
         "anchors_path": 'model_data/yolo_anchors.txt',
         "classes_path": 'model_data/evade_classes.txt',

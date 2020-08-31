@@ -241,7 +241,7 @@ def main(yolo, input_path):
 
 if __name__ == '__main__':
     # input_img = "C:/Users/vegetabledog/Desktop/10.6.8.181_20200812_093905.445-origin.jpg"
-    base_path = "E:/evade_test/181-20200824/"
+    base_path = "E:/evade_test/20200827/"
     main(YOLO(), base_path)
 
 
