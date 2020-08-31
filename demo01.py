@@ -1,5 +1,7 @@
+import time
 import cv2
 from common.config import image_size, effective_area_rate
+from common.dateUtil import formatTimestamp
 
 list1 = [('child', 0.4166157, [542.0016, 278.24387, 600.6658, 355.25095])]
 list2 = [('head', 0.61927605, [537.6127, 283.58765, 604.105, 350.898]),
@@ -35,3 +37,5 @@ height = image_size[1] * effective_area_rate[1]  # 有效区域高度
 print(center)
 print(width, height)
 print(int(center[0] - width / 2), int(center[1] - height / 2), int(center[0] + width / 2), int(center[1] + height / 2))
+
+print(formatTimestamp(time.time()))
