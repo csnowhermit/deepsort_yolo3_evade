@@ -286,12 +286,13 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                     if os.path.exists(evade_video_time_path) is False:
                         os.makedirs(evade_video_time_path)
 
-                    if flag == "NORMAL":  # 正常情况
-                        savefile = os.path.join(normal_time_path, ip + "_" + curr_time_path + ".jpg")
-                        status = cv2.imwrite(filename=savefile, img=result)  # cv2.imwrite()保存文件，路径不能有2个及以上冒号
-
-                        print("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
-                        log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                    if flag == "NORMAL":  # 正常情况（20201028更新：正常情况和逃票小视频不保存了）
+                        pass
+                        # savefile = os.path.join(normal_time_path, ip + "_" + curr_time_path + ".jpg")
+                        # status = cv2.imwrite(filename=savefile, img=result)  # cv2.imwrite()保存文件，路径不能有2个及以上冒号
+                        #
+                        # print("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                        # log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
                     elif flag == "WARNING":  # 逃票情况
                         savefile = os.path.join(evade_time_path, ip + "_" + curr_time_path + ".jpg")
                         status = cv2.imwrite(filename=savefile, img=result)
@@ -305,37 +306,38 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                         log.logger.warn("时间: %s, 状态: %s, 原始文件: %s, 保存状态: %s, 检后文件: %s, 保存状态: %s" % (
                             curr_time_path, flag, originfile, status2, savefile, status))
 
-                        # 开始拼接视频
-                        lock.acquire()
-                        try:
-                            # index = imgCacheList.index(frame)    # 找到当前图片的所属下标
-                            sign = hashlib.md5(frame).hexdigest()
-                            index = md5List.index(sign)  # 用md5值匹配找图
-
-                            start = max(0, index - imgNearSize)
-                            end = min(len(imgCacheList), index + imgNearSize)
-                            tmp = imgCacheList[start: end]
-                            lock.release()
-
-                            video_FourCC = 875967080
-                            video_fps = 25
-                            video_size = (frame.shape[1], frame.shape[0])
-                            video_file = os.path.join(evade_video_time_path, ip + "_" + curr_time_path + ".mp4")
-
-                            out = cv2.VideoWriter(video_file, video_FourCC, video_fps, video_size)
-                            for t in tmp:
-                                out.write(t)
-                            out.release()
-
-                            print("视频保存完成: %s" % (video_file))
-                            log.logger.info("视频保存完成: %s" % (video_file))
-                        except ValueError as e:
-                            lock.release()
-                            print("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
-                            log.logger.error("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
-
-                        print("视频保存完成: %s" % (video_file))
-                        log.logger.info("视频保存完成: %s" % (video_file))
+                        # （20201028更新：正常情况和小视频不保存了）
+                        # # 开始拼接视频
+                        # lock.acquire()
+                        # try:
+                        #     # index = imgCacheList.index(frame)    # 找到当前图片的所属下标
+                        #     sign = hashlib.md5(frame).hexdigest()
+                        #     index = md5List.index(sign)  # 用md5值匹配找图
+                        #
+                        #     start = max(0, index - imgNearSize)
+                        #     end = min(len(imgCacheList), index + imgNearSize)
+                        #     tmp = imgCacheList[start: end]
+                        #     lock.release()
+                        #
+                        #     video_FourCC = 875967080
+                        #     video_fps = 25
+                        #     video_size = (frame.shape[1], frame.shape[0])
+                        #     video_file = os.path.join(evade_video_time_path, ip + "_" + curr_time_path + ".mp4")
+                        #
+                        #     out = cv2.VideoWriter(video_file, video_FourCC, video_fps, video_size)
+                        #     for t in tmp:
+                        #         out.write(t)
+                        #     out.release()
+                        #
+                        #     print("视频保存完成: %s" % (video_file))
+                        #     log.logger.info("视频保存完成: %s" % (video_file))
+                        # except ValueError as e:
+                        #     lock.release()
+                        #     print("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
+                        #     log.logger.error("当前图片不存在于缓存中: %s" % (traceback.format_exc()))
+                        #
+                        # print("视频保存完成: %s" % (video_file))
+                        # log.logger.info("视频保存完成: %s" % (video_file))
                     else:  # 没人的情况
                         print("时间: %s, 状态: %s" % (curr_time_path, flag))
                         log.logger.info("时间: %s, 状态: %s" % (curr_time_path, flag))
