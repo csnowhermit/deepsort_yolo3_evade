@@ -76,22 +76,22 @@ def capture_thread(input_webcam, frame_buffer, lock, imgCacheList, md5List):
         lock.acquire()
         frame_buffer.push(frame)    # 用于跳帧识别的缓存
 
-        try:
-            imgCacheList.append(frame)  # 用来生成截取视频的缓存
-            sign = hashlib.md5(frame).hexdigest()
-            md5List.append(sign)  # 图片的签名值
-            if len(imgCacheList) > imgCacheSize:  # 如果超长，则删除最前面的
-                imgCacheList.remove(imgCacheList[0])
-            if len(md5List) > imgNearSize:
-                md5List.remove(md5List[0])
-        except TypeError as e:
-            print("视频序列准备失败: %s" % (traceback.format_exc()))
-            log.logger.error("视频序列准备失败: %s" % (traceback.format_exc()))
-            pass
-        except Exception as e:
-            print("视频序列准备失败: %s" % (traceback.format_exc()))
-            log.logger.error("视频序列准备失败: %s" % (traceback.format_exc()))
-            pass
+        # try:
+        #     imgCacheList.append(frame)  # 用来生成截取视频的缓存
+        #     sign = hashlib.md5(frame).hexdigest()
+        #     md5List.append(sign)  # 图片的签名值
+        #     if len(imgCacheList) > imgCacheSize:  # 如果超长，则删除最前面的
+        #         imgCacheList.remove(imgCacheList[0])
+        #     if len(md5List) > imgNearSize:
+        #         md5List.remove(md5List[0])
+        # except TypeError as e:
+        #     print("视频序列准备失败: %s" % (traceback.format_exc()))
+        #     log.logger.error("视频序列准备失败: %s" % (traceback.format_exc()))
+        #     pass
+        # except Exception as e:
+        #     print("视频序列准备失败: %s" % (traceback.format_exc()))
+        #     log.logger.error("视频序列准备失败: %s" % (traceback.format_exc()))
+        #     pass
 
         lock.release()
         cv2.waitKey(25)    # delay 25ms
@@ -287,12 +287,11 @@ def detect_thread(frame_buffer, lock, imgCacheList, md5List):
                         os.makedirs(evade_video_time_path)
 
                     if flag == "NORMAL":  # 正常情况（20201028更新：正常情况和逃票小视频不保存了）
-                        pass
-                        # savefile = os.path.join(normal_time_path, ip + "_" + curr_time_path + ".jpg")
+                        savefile = os.path.join(normal_time_path, ip + "_" + curr_time_path + ".jpg")
                         # status = cv2.imwrite(filename=savefile, img=result)  # cv2.imwrite()保存文件，路径不能有2个及以上冒号
-                        #
-                        # print("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
-                        # log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                        status = False    # 正常文件不保存
+                        print("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
+                        log.logger.info("时间: %s, 状态: %s, 文件: %s, 保存状态: %s" % (curr_time_path, flag, savefile, status))
                     elif flag == "WARNING":  # 逃票情况
                         savefile = os.path.join(evade_time_path, ip + "_" + curr_time_path + ".jpg")
                         status = cv2.imwrite(filename=savefile, img=result)
@@ -360,9 +359,9 @@ if __name__ == '__main__':
 
     imgCacheList = []    # 原图缓存队列，用做视频拼接
     md5List = []    # 原图缓存队列中每帧的md5值
-    # input_path = "E:/BaiduNetdiskDownload/2020-04-14/10.6.8.181_01_20200414185039477.mp4"
+    input_path = "E:/BaiduNetdiskDownload/2020-04-14/10.6.8.181_01_20200414185039477.mp4"
     # input_path = 0
-    t1 = threading.Thread(target=capture_thread, args=(rtsp_url, frame_buffer, lock, imgCacheList, md5List))
+    t1 = threading.Thread(target=capture_thread, args=(input_path, frame_buffer, lock, imgCacheList, md5List))
     t1.start()
     t2 = threading.Thread(target=detect_thread, args=(frame_buffer, lock, imgCacheList, md5List))
     t2.start()
