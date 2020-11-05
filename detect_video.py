@@ -60,6 +60,7 @@ def main(yolo, input_path, output_path):
 
     video_capture = cv2.VideoCapture(input_path)
 
+    video_Frames = video_capture.get(7)  # 获取视频总帧数
     video_FourCC = int(video_capture.get(cv2.CAP_PROP_FOURCC))
     video_fps = video_capture.get(cv2.CAP_PROP_FPS)
     video_size = (int(video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
@@ -70,10 +71,12 @@ def main(yolo, input_path, output_path):
         log.logger.info("!!! TYPE: %s %s %s %s" % (type(output_path), type(video_FourCC), type(video_fps), type(video_size)))
         out = cv2.VideoWriter(output_path, video_FourCC, video_fps, video_size)
 
+    count = 0
     while True:
         read_t1 = time.time()    # 读取动作开始
-        print("=================== start a image reco %s ===================" % (formatTimestamp(time.time(), ms=True)))
-        log.logger.info("=================== start a image reco %s ===================" % (formatTimestamp(time.time(), ms=True)))
+        print("=================== (%g/%g) start a image reco %s ===================" % (count, video_Frames, formatTimestamp(time.time(), ms=True)))
+        log.logger.info("=================== (%g/%g) start a image reco %s ===================" % (count, video_Frames, formatTimestamp(time.time(), ms=True)))
+        count += 1
 
         ret, frame = video_capture.read()  # frame shape (h, w, c) (1080, 1920, 3)
         if ret != True:
